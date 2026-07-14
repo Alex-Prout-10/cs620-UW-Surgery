@@ -103,12 +103,17 @@ export async function POST(request: NextRequest) {
       // action === 'proceed': continue with original query
     }
 
+    const dialEngineStart = performance.now();
+
     const response = await runDialogueEngine({
       sessionId,
       userMessage: sanitizedMessage,
       clientState: body?.client_state
     });
 
+    const dialEngineDuration = Math.round(performance.now() - dialEngineStart);
+    console.log(`[final-step] runDialogueEngine completely finished in: ${dialEngineDuration}ms`);
+    
     // Attach pipeline trace to response
     const responseWithTrace = {
       ...response,

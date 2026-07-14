@@ -387,24 +387,25 @@ export async function runDialogueEngine({
 
     const routerUser = `Session: ${sessionId ?? 'unknown'}\nUser message: ${routerMessage}\nClient state: ${safeClientState(clientState) ?? 'none'}`;
 
-    const routerResponse = await openai.responses.create({
+    const routerResponse = await openai.chat.completions.create({
       model: ROUTER_MODEL,
-      input: [
+      messages: [
         { role: 'system', content: routerSystem },
         { role: 'user', content: routerUser }
       ],
-      text: {
-        format: {
-          type: 'json_schema',
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
           name: RouteDecisionJsonSchema.name,
           strict: true,
           schema: RouteDecisionJsonSchema.schema
         }
       },
-      max_output_tokens: 200
+      max_tokens: 200 // Enforce a low token limit so it finishes instantly
     });
-
-    const routerPayload = getOutputText(routerResponse);
+    // Extract raw text using the native stateless array structure
+    const routerPayload = routerResponse.choices[0].message.content ?? '';
+    // Pass it directly into your existing Zod parser
     decision = parseStructured(routerPayload, RouteDecisionSchema);
   }
 
