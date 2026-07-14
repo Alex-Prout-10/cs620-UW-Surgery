@@ -1,10 +1,9 @@
-'use client';
-
-import { useEffect, useRef, useState } from 'react';
-import type { AssistantTurn } from '@/lib/schemas';
-import CardRenderer from '@/components/cards/CardRenderer';
-import CitationList from '@/components/CitationList';
-import PipelineTraceCard from '@/components/cards/PipelineTraceCard';
+"use client";
+import { useEffect, useRef, useState } from "react";
+import type { AssistantTurn } from "@/lib/schemas";
+import CardRenderer from "@/components/cards/CardRenderer";
+import CitationList from "@/components/CitationList";
+import PipelineTraceCard from "@/components/cards/PipelineTraceCard";
 
 declare global {
   interface SpeechRecognitionEvent extends Event {
@@ -40,7 +39,7 @@ declare global {
 
 type ChatMessage = {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   data?: AssistantTurn;
   pipeline_trace?: any;
@@ -48,7 +47,7 @@ type ChatMessage = {
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [clientState, setClientState] = useState<Record<string, unknown>>({});
@@ -56,30 +55,35 @@ export default function ChatPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [ttsSupported, setTtsSupported] = useState(false);
-  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(
+    null,
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<ReturnType<typeof createRecognition> | null>(null);
-  const preRecordInputRef = useRef('');
+  const latestResponseRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<ReturnType<typeof createRecognition> | null>(
+    null,
+  );
+  const preRecordInputRef = useRef("");
 
   useEffect(() => {
     const SR =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
     setSpeechSupported(!!SR);
-    setTtsSupported(typeof window.speechSynthesis !== 'undefined');
+    setTtsSupported(typeof window.speechSynthesis !== "undefined");
   }, []);
 
   useEffect(() => {
     return () => {
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
     };
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const storedState = localStorage.getItem('navigator_client_state');
+    if (typeof window === "undefined") return;
+    const storedState = localStorage.getItem("navigator_client_state");
     if (storedState) {
       try {
         setClientState(JSON.parse(storedState));
@@ -88,10 +92,10 @@ export default function ChatPage() {
       }
     }
 
-    if (sessionStorage.getItem('navigator_session_active')) {
+    if (sessionStorage.getItem("navigator_session_active")) {
       const loadHistory = async () => {
         try {
-          const response = await fetch('/api/chat/history');
+          const response = await fetch("/api/chat/history");
           const payload = await response.json();
           if (payload?.messages) {
             const history = payload.messages.map((message: any) => ({
@@ -99,41 +103,54 @@ export default function ChatPage() {
               role: message.role,
               content: message.content,
               data: message.assistant_turn ?? undefined,
-              pipeline_trace: message.assistant_turn?.pipeline_trace ?? null
+              pipeline_trace: message.assistant_turn?.pipeline_trace ?? null,
             }));
             setMessages(history);
-            const lastAssistant = history.filter((msg: ChatMessage) => msg.role === 'assistant').pop();
+            const lastAssistant = history
+              .filter((msg: ChatMessage) => msg.role === "assistant")
+              .pop();
             if (lastAssistant?.data) {
-              sessionStorage.setItem('navigator_last_response', JSON.stringify(lastAssistant.data));
+              sessionStorage.setItem(
+                "navigator_last_response",
+                JSON.stringify(lastAssistant.data),
+              );
             }
           }
         } catch (error) {
-          console.error('Failed to load history', error);
+          console.error("Failed to load history", error);
         }
       };
 
       loadHistory();
     }
-    sessionStorage.setItem('navigator_session_active', '1');
+    sessionStorage.setItem("navigator_session_active", "1");
 
     const loadConfig = async () => {
       try {
-        const response = await fetch('/api/config');
+        const response = await fetch("/api/config");
         const data = await response.json();
         if (data?.config) {
           setAppConfig(data.config);
         }
       } catch (error) {
-        console.error('Failed to load config', error);
+        console.error("Failed to load config", error);
       }
     };
 
     loadConfig();
   }, []);
 
+  //fixed: scrolls to chatbot when prompted
   useEffect(() => {
-    if (messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length === 0) return;
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage.role === "user" || loading) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    } else if (lastMessage.role === "assistant") {
+      latestResponseRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     }
   }, [messages, loading]);
 
@@ -141,50 +158,50 @@ export default function ChatPage() {
     if (!input.trim() || loading) return;
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
-      role: 'user',
-      content: input.trim()
+      role: "user",
+      content: input.trim(),
     };
     setMessages((prev) => [...prev, userMessage]);
-    setInput('');
+    setInput("");
     setLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_message: userMessage.content,
           session_id: null,
-          client_state: clientState
-        })
+          client_state: clientState,
+        }),
       });
 
       const payload = await response.json();
       if (!response.ok || !payload?.assistant_message) {
-        throw new Error('Invalid response');
+        throw new Error("Invalid response");
       }
       const data = payload as AssistantTurn;
 
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
-        role: 'assistant',
+        role: "assistant",
         content: data.assistant_message,
         data,
-        pipeline_trace: payload.pipeline_trace ?? null
+        pipeline_trace: payload.pipeline_trace ?? null,
       };
       setMessages((prev) => [...prev, assistantMessage]);
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('navigator_last_response', JSON.stringify(data));
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("navigator_last_response", JSON.stringify(data));
       }
     } catch (error) {
-      console.error('Chat error', error);
+      console.error("Chat error", error);
       setMessages((prev) => [
         ...prev,
         {
           id: crypto.randomUUID(),
-          role: 'assistant',
-          content: 'Sorry, something went wrong. Please try again.'
-        }
+          role: "assistant",
+          content: "Sorry, something went wrong. Please try again.",
+        },
       ]);
     } finally {
       setLoading(false);
@@ -200,33 +217,38 @@ export default function ChatPage() {
   };
 
   const handleShareSummary = () => {
-    const lastAssistant = [...messages].reverse().find((msg) => msg.role === 'assistant' && msg.data);
+    const lastAssistant = [...messages]
+      .reverse()
+      .find((msg) => msg.role === "assistant" && msg.data);
     if (lastAssistant?.data) {
-      sessionStorage.setItem('navigator_last_response', JSON.stringify(lastAssistant.data));
+      sessionStorage.setItem(
+        "navigator_last_response",
+        JSON.stringify(lastAssistant.data),
+      );
     }
-    window.location.href = '/checklist';
+    window.location.href = "/checklist";
   };
 
   const handleSymptomUpdate = (selected: string[]) => {
     const nextState = { ...clientState, selectedSymptoms: selected };
     setClientState(nextState);
-    localStorage.setItem('navigator_client_state', JSON.stringify(nextState));
+    localStorage.setItem("navigator_client_state", JSON.stringify(nextState));
   };
 
   const handleClearHistory = async () => {
     if (clearing) return;
     setClearing(true);
     try {
-      await fetch('/api/session/delete', { method: 'POST' });
+      await fetch("/api/session/delete", { method: "POST" });
       setMessages([]);
-      setInput('');
+      setInput("");
       setClientState({});
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('navigator_client_state');
-        sessionStorage.removeItem('navigator_last_response');
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("navigator_client_state");
+        sessionStorage.removeItem("navigator_last_response");
       }
     } catch (error) {
-      console.error('Failed to clear history', error);
+      console.error("Failed to clear history", error);
     } finally {
       setClearing(false);
     }
@@ -241,11 +263,11 @@ export default function ChatPage() {
     const recognition = new SR() as SpeechRecognition;
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    recognition.lang = "en-US";
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let finalTranscript = '';
-      let interimTranscript = '';
+      let finalTranscript = "";
+      let interimTranscript = "";
       for (let i = 0; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
@@ -255,12 +277,12 @@ export default function ChatPage() {
         }
       }
       const prefix = preRecordInputRef.current;
-      const separator = prefix && !prefix.endsWith(' ') ? ' ' : '';
+      const separator = prefix && !prefix.endsWith(" ") ? " " : "";
       setInput(prefix + separator + finalTranscript + interimTranscript);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error('Speech recognition error:', event.error);
+      console.error("Speech recognition error:", event.error);
       setIsRecording(false);
     };
 
@@ -272,7 +294,7 @@ export default function ChatPage() {
   }
 
   const toggleSpeak = (messageId: string, text: string) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
 
     if (speakingMessageId === messageId) {
       window.speechSynthesis.cancel();
@@ -282,7 +304,7 @@ export default function ChatPage() {
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
+    utterance.lang = "en-US";
     utterance.onend = () => setSpeakingMessageId(null);
     utterance.onerror = () => setSpeakingMessageId(null);
     window.speechSynthesis.speak(utterance);
@@ -298,7 +320,7 @@ export default function ChatPage() {
 
     if (!speechSupported) return;
 
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
       setSpeakingMessageId(null);
     }
@@ -312,64 +334,52 @@ export default function ChatPage() {
     setIsRecording(true);
   };
 
+  //COMMON QUESTIONS TO ASK
   const starterPrompts = [
-    { label: 'What happens next?', value: 'What are the usual next steps after an adrenal nodule is found?' },
-    { label: 'Do I need blood or urine tests?', value: 'Do I need blood or urine tests for my adrenal nodule?' },
-    { label: 'When is specialty care needed?', value: 'When would I need to see a specialist for my adrenal nodule?' },
-    { label: 'How do I prepare for testing?', value: 'How do I prepare for adrenal nodule testing?' }
+    {
+      label: "What happens next?",
+      value: "What are the usual next steps after an adrenal nodule is found?",
+    },
+    {
+      label: "Do I need blood or urine tests?",
+      value: "Do I need blood or urine tests for my adrenal nodule?",
+    },
+    {
+      label: "When is specialty care needed?",
+      value: "When would I need to see a specialist for my adrenal nodule?",
+    },
+    {
+      label: "How do I prepare for testing?",
+      value: "How do I prepare for adrenal nodule testing?",
+    },
   ];
 
   return (
     <div className="grid gap-6">
-      <section className="card fade-in overflow-hidden p-0">
-        <div className="px-5 pt-4 pb-2">
-          <h2 className="font-serif text-xl text-darkgray">Understanding Your Adrenal Nodule</h2>
-          <p className="mt-1 text-sm text-muted">Watch this short overview from the UW Endocrine Surgery team about what an adrenal nodule is and what to expect.</p>
-        </div>
-        <video
-          controls
-          playsInline
-          preload="metadata"
-          className="w-full"
-          poster="/poster.png"
-        >
-          <source src="https://0qduonpuurottffe.public.blob.vercel-storage.com/Patient%20adrenal%20copy.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-      </section>
-
-      <section className="card fade-in">
-        <h2 className="font-serif text-xl text-darkgray">Your Usual Care Pathway</h2>
-        <p className="mt-1 text-sm text-muted">
-          Here is what typically happens after an adrenal nodule is found. Your care team will guide you through each step.
-        </p>
-        <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { step: '1', title: 'Nodule Found', desc: 'An adrenal nodule is discovered on imaging done for another reason. Your doctor reviews the scan.' },
-            { step: '2', title: 'Hormone Testing', desc: 'Blood and sometimes urine tests check whether the nodule is making extra hormones. Your doctor orders these.' },
-            { step: '3', title: 'Results Review', desc: 'Your care team reviews test results and imaging to determine if the nodule needs further action or monitoring.' },
-            { step: '4', title: 'Next Steps', desc: 'Based on results, you may be monitored with follow-up imaging, referred to a specialist, or reassured that no further action is needed.' }
-          ].map((item) => (
-            <li key={item.step} className="flex gap-3 rounded-xl border border-accent/60 bg-white/70 p-3">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-uwred text-xs font-bold text-white">{item.step}</span>
-              <div>
-                <div className="text-sm font-semibold text-darkgray">{item.title}</div>
-                <p className="mt-0.5 text-xs text-muted leading-relaxed">{item.desc}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <p className="text-center text-sm text-muted -mt-2">
-        After watching the video, use the chat below to ask follow-up questions about your care.
-      </p>
-
+      {/* Ask Your Questions header */}
       <section id="chat" className="card fade-in scroll-mt-24">
-        <h1 className="font-serif text-3xl text-darkgray">Ask Your Questions</h1>
-        <p className="mt-2 text-muted">
-          Ask about your tests, how to get ready, or what happens next after your referral.
-        </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="font-serif text-3xl text-darkgray">Chat</h1>
+            <p className="mt-2 text-muted">
+              Ask about your tests, how to get ready, or what happens next after
+              your referral.
+            </p>
+          </div>
+
+          {/* New Chat Reset Button */}
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearHistory}
+              disabled={clearing}
+              className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-darkgray shadow-sm transition hover:border-uwred hover:text-uwred disabled:opacity-50 shrink-0"
+            >
+              {clearing ? "Resetting…" : "New Chat"}
+            </button>
+          )}
+        </div>
+
         {appConfig.clinic_description && (
           <div className="mt-4 rounded-2xl border border-accent bg-white/70 px-4 py-3 text-sm text-muted">
             {appConfig.clinic_description}
@@ -392,18 +402,33 @@ export default function ChatPage() {
         </section>
       )}
 
+
+      {/* Message Timeline Log */}
       <section className="grid gap-4">
-        {messages.map((message) => (
-          <article key={message.id} className="card">
+        {messages.map((message, index) => (
+          <article
+            key={message.id}
+            // This inline check handles the scroll target safely without changing brackets
+            ref={
+              index === messages.length - 1 && message.role === "assistant"
+                ? latestResponseRef
+                : null
+            }
+            className="card scroll-mt-24"
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-xs uppercase tracking-[0.2em] text-uwred">
-                {message.role === 'user' ? 'You' : 'Navigator'}
+                {message.role === "user" ? "You" : "Navigator"}
               </div>
-              {message.role === 'assistant' && ttsSupported && (
+              {message.role === "assistant" && ttsSupported && (
                 <button
                   type="button"
                   onClick={() => toggleSpeak(message.id, message.content)}
-                  aria-label={speakingMessageId === message.id ? 'Stop reading' : 'Read message aloud'}
+                  aria-label={
+                    speakingMessageId === message.id
+                      ? "Stop reading"
+                      : "Read message aloud"
+                  }
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-accent text-uwred transition hover:bg-gray-100"
                 >
                   {speakingMessageId === message.id ? (
@@ -438,30 +463,34 @@ export default function ChatPage() {
             </div>
             <p className="mt-3 text-base text-darkgray">{message.content}</p>
 
-            {message.role === 'assistant' && message.data && (
+            {message.role === "assistant" && message.data && (
               <div className="mt-4 grid gap-4 text-sm text-muted">
-                {message.data.triage_level !== 'none' && (
+                {message.data.triage_level !== "none" && (
                   <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-900">
                     <div className="font-semibold">Triage guidance</div>
                     <div>
                       {(() => {
-                        const handoffCard = message.data.ui_cards.find((card) => card.type === 'handoff');
-                        const handoffMessage = handoffCard?.content?.handoff?.message?.trim();
+                        const handoffCard = message.data.ui_cards.find(
+                          (card) => card.type === "handoff",
+                        );
+                        const handoffMessage =
+                          handoffCard?.content?.handoff?.message?.trim();
                         if (handoffMessage) return handoffMessage;
-                        if (message.data.triage_level === 'contact_clinic') {
-                          return 'Please call your clinic to talk about your symptoms.';
+                        if (message.data.triage_level === "contact_clinic") {
+                          return "Please call your clinic to talk about your symptoms.";
                         }
-                        if (message.data.triage_level === 'urgent') {
-                          return 'Please go to urgent care or call your doctor today about your symptoms.';
+                        if (message.data.triage_level === "urgent") {
+                          return "Please go to urgent care or call your doctor today about your symptoms.";
                         }
-                        return 'If your symptoms are serious, call 911 or go to the emergency room right away.';
+                        return "If your symptoms are serious, call 911 or go to the emergency room right away.";
                       })()}
                     </div>
                   </div>
                 )}
 
                 <div className="text-xs uppercase tracking-[0.2em] text-uwred">
-                  Mode: {message.data.mode} | Triage: {message.data.triage_level}
+                  Mode: {message.data.mode} | Triage:{" "}
+                  {message.data.triage_level}
                 </div>
 
                 <div>
@@ -485,7 +514,8 @@ export default function ChatPage() {
                         billing_phone: appConfig.billing_phone ?? null,
                         scheduling_link: appConfig.scheduling_link ?? null,
                         what_to_bring: appConfig.what_to_bring ?? null,
-                        emergency_guidance: appConfig.emergency_guidance ?? null
+                        emergency_guidance:
+                          appConfig.emergency_guidance ?? null,
                       }}
                     />
                   ))}
@@ -497,13 +527,19 @@ export default function ChatPage() {
                       <button
                         key={`${action.label}-${action.action_type}`}
                         onClick={() => {
-                          if (action.action_type === 'quick_reply' && action.payload.value) {
+                          if (
+                            action.action_type === "quick_reply" &&
+                            action.payload.value
+                          ) {
                             handleQuickReply(action.payload.value);
                           }
-                          if (action.action_type === 'navigate' && action.payload.href) {
+                          if (
+                            action.action_type === "navigate" &&
+                            action.payload.href
+                          ) {
                             handleNavigate(action.payload.href);
                           }
-                          if (action.action_type === 'share_summary') {
+                          if (action.action_type === "share_summary") {
                             handleShareSummary();
                           }
                         }}
@@ -529,7 +565,9 @@ export default function ChatPage() {
 
         {loading && (
           <article className="card">
-            <div className="text-xs uppercase tracking-[0.2em] text-uwred">Navigator</div>
+            <div className="text-xs uppercase tracking-[0.2em] text-uwred">
+              Navigator
+            </div>
             <div className="mt-3 flex items-center gap-1.5">
               <span className="thinking-dot" />
               <span className="thinking-dot thinking-dot-delay-1" />
@@ -548,7 +586,7 @@ export default function ChatPage() {
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
+                if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();
                   handleSend();
                 }
@@ -562,11 +600,14 @@ export default function ChatPage() {
                 type="button"
                 onClick={toggleRecording}
                 disabled={loading}
-                aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
-                className={`absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full transition ${isRecording
-                  ? 'bg-uwred text-white animate-pulse'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-uwred'
-                  } disabled:opacity-50`}
+                aria-label={
+                  isRecording ? "Stop recording" : "Start voice input"
+                }
+                className={`absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full transition ${
+                  isRecording
+                    ? "bg-uwred text-white animate-pulse"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-uwred"
+                } disabled:opacity-50`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -592,14 +633,18 @@ export default function ChatPage() {
             </div>
           )}
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
-            <span>To protect your privacy, please do not share any sensitive details, such as your date of birth, Social Security Number, or insurance information.</span>
+            <span>
+              To protect your privacy, please do not share any sensitive
+              details, such as your date of birth, Social Security Number, or
+              insurance information.
+            </span>
             <button
               type="button"
               onClick={handleClearHistory}
               className="font-semibold text-uwred transition hover:underline"
               disabled={clearing}
             >
-              {clearing ? 'Clearing…' : 'Clear chat history'}
+              {clearing ? "Clearing…" : "New Chat"}
             </button>
           </div>
           <button

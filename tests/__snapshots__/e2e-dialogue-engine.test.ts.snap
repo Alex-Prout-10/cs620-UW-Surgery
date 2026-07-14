@@ -1,0 +1,105 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Dialogue Engine E2E > snapshot of AssistantTurn (IDs stripped) 1`] = `
+{
+  "assistant_message": "Here is a look at what usually happens after a doctor finds a spot on your adrenal gland (a small organ near your kidney).",
+  "citations": [
+    {
+      "citation_key": "DOC:Emergency_Severity_Index_Handbook.pdf|CHUNK:4535b7f3072d34a4d22f46f3a166ddfe085c9f17a978064db0a1698435f1b341|P:13-13",
+      "quote": null,
+    },
+    {
+      "citation_key": "DOC:JAMA Guidelines for Adrenalectomy.pdf|CHUNK:34f444e933ac168747f4db8708e2576d2279bcf561e975e6eb7d4576d160146c|P:7-7",
+      "quote": null,
+    },
+    {
+      "citation_key": "DOC:Emergency_Severity_Index_Handbook.pdf|CHUNK:7d28cc352166e6857791a29a1c12496dfa3c97eb117ed22bcbab72af4152ec9e|P:31-31",
+      "quote": null,
+    },
+  ],
+  "disclaimer": "This is general information, not a diagnosis. Do not change or stop any medicine without talking to your doctor first.",
+  "mode": "faq",
+  "suggested_actions": [
+    {
+      "action_type": "quick_reply",
+      "label": "How do I get ready for tests?",
+      "payload": {
+        "href": null,
+        "value": "How do I get ready for my blood tests?",
+      },
+    },
+    {
+      "action_type": "navigate",
+      "label": "View my to-do list",
+      "payload": {
+        "href": "/checklist",
+        "value": null,
+      },
+    },
+    {
+      "action_type": "share_summary",
+      "label": "Share my summary",
+      "payload": {
+        "href": "/checklist",
+        "value": null,
+      },
+    },
+  ],
+  "triage_level": "none",
+  "ui_cards": [
+    {
+      "content": {
+        "bullets": [],
+        "checklist": [],
+        "cost_tips": [],
+        "handoff": {
+          "contacts": [],
+          "message": "",
+        },
+        "questions": [],
+        "steps": [
+          {
+            "detail": "Your doctor reviews your CT or MRI images and any earlier scans.",
+            "label": "Look at your scans",
+          },
+          {
+            "detail": "Blood tests check for cortisol (a stress hormone), aldosterone (a blood pressure hormone), and other hormones.",
+            "label": "Check your hormones",
+          },
+          {
+            "detail": "Your doctor uses the results to decide if you need more tests, a follow-up visit, or just routine check-ins.",
+            "label": "Plan next steps",
+          },
+        ],
+        "summary": "After a referral, your doctor usually looks at your scans, orders blood tests, and plans a follow-up visit.",
+        "symptoms": [],
+        "tests": [],
+      },
+      "title": "What usually happens next",
+      "type": "roadmap",
+    },
+    {
+      "content": {
+        "bullets": [],
+        "checklist": [],
+        "cost_tips": [
+          "Ask your clinic if your insurance needs to approve the tests first.",
+          "Ask how much you will pay out of pocket before you schedule.",
+          "Try to schedule your blood work and doctor visit on the same day to save trips.",
+        ],
+        "handoff": {
+          "contacts": [],
+          "message": "",
+        },
+        "questions": [],
+        "steps": [],
+        "summary": "",
+        "symptoms": [],
+        "tests": [],
+      },
+      "title": "Costs and scheduling",
+      "type": "cost_navigation",
+    },
+  ],
+}
+`;

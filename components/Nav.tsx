@@ -2,7 +2,8 @@ import Link from 'next/link';
 import AccessibilityToggles from '@/components/AccessibilityToggles';
 
 const links = [
-  { href: '/chat#chat', label: 'Chat' }
+  { href: '/', label: 'Home' },
+  { href: '/chat', label: 'Chat' }
   // { href: '/checklist', label: 'Checklist' },
   // { href: '/admin/content', label: 'Content' },
   // { href: '/admin/config', label: 'Config' }
@@ -25,11 +26,16 @@ const resourceLinks = [
 
 export default function Nav() {
   return (
+
+
     <nav className="flex flex-col gap-4 md:grid md:grid-cols-[auto,1fr,auto] md:items-center">
-      <Link href="/chat">
+      {/*navigate home ref button*/}
+      <Link href="/">
         <span className="text-sm uppercase tracking-[0.3em] text-uwred">Adrenal Nodule Clinic Navigator</span>
         <div className="font-serif text-2xl text-darkgray">Patient Guide</div>
       </Link>
+
+
       <div className="flex flex-wrap gap-3 text-sm md:flex-nowrap md:justify-center">
         {links.map((link) => (
           <Link
@@ -40,6 +46,11 @@ export default function Nav() {
             {link.label}
           </Link>
         ))}
+
+
+
+
+        {/* resources dropdown panel */}
         <div className="group relative pt-2 -mt-2">
           <button
             type="button"

@@ -27,7 +27,8 @@ function parseEnvFile(content: string) {
 function run(command: string, args: string[], extraEnv?: Record<string, string>) {
   const result = spawnSync(command, args, {
     stdio: 'inherit',
-    env: { ...process.env, ...extraEnv }
+    env: { ...process.env, ...extraEnv },
+    shell: true // <-- THIS FIXES IT FOR WINDOWS
   });
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
@@ -112,7 +113,7 @@ async function main() {
   }
 
   run('pnpm', ['prisma:generate'], env);
-  run('npx', ['prisma', 'migrate', 'deploy'], env);
+ // run('npx', ['prisma', 'migrate', 'deploy'], env); -- commented out for now
 
   if (process.env.RUN_INGEST === '1') {
     run('pnpm', ['ingest'], env);

@@ -5,6 +5,7 @@ import { Fraunces, Manrope } from 'next/font/google';
 import Nav from '@/components/Nav';
 import PiiWarningModal from '@/components/PiiWarningModal';
 
+
 const fraunces = Fraunces({
   subsets: ['latin'],
   variable: '--font-serum',
@@ -43,20 +44,20 @@ export default function RootLayout({
           <main className="flex-1">
             <div className="container-shell">{children}</div>
           </main>
-          <footer className="container-shell text-sm text-muted">
-            <div className="card">
-              <div className="flex flex-col gap-2">
-                <div className="badge">Medical Disclaimer</div>
-                <p>
-                  This tool provides general education and navigation support. It does not diagnose,
-                  provide individualized medical decisions, recommend medication changes, or replace care
-                  from your clinicians.
-                </p>
-                <p>
-                  If you have severe symptoms, chest pain, difficulty breathing, fainting, or thoughts of
-                  self-harm, seek emergency care immediately.
-                </p>
-              </div>
+          <footer className="mt-8 border-t border-slate-100 pt-4 pb-2 max-w-2xl mx-auto text-center font-normal">
+            <div className="text-[10px] text-slate-400 tracking-wide uppercase font-semibold mb-1">
+              Medical Disclaimer
+            </div>
+            <div className="flex flex-col gap-1 text-[11px] leading-normal text-slate-400 font-normal">
+              <p>
+                This tool provides general education and navigation support.
+              </p>
+              <p>
+                It does not diagnose, provide individualized medical decisions, recommend medication changes, or replace care from your clinicians.
+              </p>
+              <p className="mt-1 text-slate-500 font-medium">
+                If you have severe symptoms, chest pain, difficulty breathing, fainting, or thoughts of self-harm, seek emergency care immediately.
+              </p>
             </div>
           </footer>
         </div>
