@@ -1,3 +1,4 @@
+
 import type { AssistantTurn } from '@/lib/schemas';
 import RoadmapCard from '@/components/cards/RoadmapCard';
 import TestInstructionsCard from '@/components/cards/TestInstructionsCard';
@@ -25,6 +26,10 @@ export default function CardRenderer({
     emergency_guidance?: string | null;
   };
 }) {
+  // 1. Return null right away to keep the frontend barebones
+  return null;
+
+  /* 2. Comment out the switch block so TypeScript doesn't throw literal type errors
   switch (card.type) {
     case 'roadmap':
       return <RoadmapCard summary={card.content.summary} />;
@@ -72,4 +77,5 @@ export default function CardRenderer({
     default:
       return null;
   }
+  */
 }

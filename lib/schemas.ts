@@ -2,47 +2,15 @@ import { z } from 'zod';
 
 export const ModeEnum = z.enum(['faq', 'guided_intake', 'plan_summary', 'triage']);
 export const TriageEnum = z.enum(['none', 'contact_clinic', 'urgent', 'emergency']);
-export const CardTypeEnum = z.enum([
-  'roadmap',
-  'test_instructions',
-  'cost_navigation',
-  'symptom_check',
-  'checklist',
-  'questions_to_ask',
-  'handoff'
-]);
+
+//removed 6 UI cards (check previous version)
+export const CardTypeEnum = z.enum(['questions_to_ask']);
+
 export const ActionTypeEnum = z.enum(['quick_reply', 'navigate', 'share_summary']);
 
-export const ChecklistItemSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  status: z.enum(['todo', 'in_progress', 'done']),
-  due_date: z.string().nullable()
-});
-
+//removed a the ZOD schema for the removed UI cardtypes
 export const CardContentSchema = z.object({
-  summary: z.string(),
-  bullets: z.array(z.string()),
-  steps: z.array(
-    z.object({
-      label: z.string(),
-      detail: z.string()
-    })
-  ),
-  checklist: z.array(ChecklistItemSchema),
-  questions: z.array(z.string()),
-  tests: z.array(
-    z.object({
-      name: z.string(),
-      instructions: z.array(z.string())
-    })
-  ),
-  cost_tips: z.array(z.string()),
-  symptoms: z.array(z.string()),
-  handoff: z.object({
-    message: z.string(),
-    contacts: z.array(z.string())
-  })
+  questions: z.array(z.string())
 });
 
 export const UiCardSchema = z.object({
@@ -51,10 +19,10 @@ export const UiCardSchema = z.object({
   content: CardContentSchema
 });
 
+//removed disclaimer output on every prompt
 export const AssistantTurnSchema = z.object({
   mode: ModeEnum,
   assistant_message: z.string(),
-  disclaimer: z.string(),
   citations: z.array(
     z.object({
       citation_key: z.string(),
@@ -76,7 +44,6 @@ export const AssistantTurnSchema = z.object({
 });
 
 export type AssistantTurn = z.infer<typeof AssistantTurnSchema>;
-
 export const RouteDecisionSchema = z.object({
   mode: ModeEnum,
   triage_level: TriageEnum,
@@ -85,6 +52,8 @@ export const RouteDecisionSchema = z.object({
 
 export type RouteDecision = z.infer<typeof RouteDecisionSchema>;
 
+// removed the "disclaimer" property entirely.
+// removed "ui_cards.content" properties to only look for questions
 export const AssistantTurnJsonSchema = {
   name: 'assistant_turn',
   strict: true,
@@ -94,7 +63,7 @@ export const AssistantTurnJsonSchema = {
     properties: {
       mode: { type: 'string', enum: ModeEnum.options },
       assistant_message: { type: 'string' },
-      disclaimer: { type: 'string' },
+      // Disclaimer property deleted from here
       citations: {
         type: 'array',
         items: {
@@ -119,70 +88,9 @@ export const AssistantTurnJsonSchema = {
               type: 'object',
               additionalProperties: false,
               properties: {
-                summary: { type: 'string' },
-                bullets: { type: 'array', items: { type: 'string' } },
-                steps: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    additionalProperties: false,
-                    properties: {
-                      label: { type: 'string' },
-                      detail: { type: 'string' }
-                    },
-                    required: ['label', 'detail']
-                  }
-                },
-                checklist: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    additionalProperties: false,
-                    properties: {
-                      id: { type: 'string' },
-                      label: { type: 'string' },
-                      status: { type: 'string', enum: ['todo', 'in_progress', 'done'] },
-                      due_date: { type: ['string', 'null'] }
-                    },
-                    required: ['id', 'label', 'status', 'due_date']
-                  }
-                },
-                questions: { type: 'array', items: { type: 'string' } },
-                tests: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    additionalProperties: false,
-                    properties: {
-                      name: { type: 'string' },
-                      instructions: { type: 'array', items: { type: 'string' } }
-                    },
-                    required: ['name', 'instructions']
-                  }
-                },
-                cost_tips: { type: 'array', items: { type: 'string' } },
-                symptoms: { type: 'array', items: { type: 'string' } },
-                handoff: {
-                  type: 'object',
-                  additionalProperties: false,
-                  properties: {
-                    message: { type: 'string' },
-                    contacts: { type: 'array', items: { type: 'string' } }
-                  },
-                  required: ['message', 'contacts']
-                }
+                questions: { type: 'array', items: { type: 'string' } }
               },
-              required: [
-                'summary',
-                'bullets',
-                'steps',
-                'checklist',
-                'questions',
-                'tests',
-                'cost_tips',
-                'symptoms',
-                'handoff'
-              ]
+              required: ['questions'] // requiring questions now
             }
           },
           required: ['type', 'title', 'content']
@@ -211,10 +119,10 @@ export const AssistantTurnJsonSchema = {
       },
       triage_level: { type: 'string', enum: TriageEnum.options }
     },
+    // Disclaimer removed from the required array
     required: [
       'mode',
       'assistant_message',
-      'disclaimer',
       'citations',
       'ui_cards',
       'suggested_actions',

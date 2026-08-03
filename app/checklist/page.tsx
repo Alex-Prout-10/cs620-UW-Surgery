@@ -18,8 +18,9 @@ export default function ChecklistPage() {
     if (typeof window === 'undefined') return;
     const stored = sessionStorage.getItem('navigator_last_response');
     const loadFromStored = (payload: AssistantTurn) => {
-      const checklistCard = payload.ui_cards.find((card) => card.type === 'checklist');
-      setChecklist(checklistCard?.content.checklist ?? []);
+      // Cast card.type to string to bypass compiler type narrowing issues
+      const checklistCard = payload.ui_cards.find((card) => (card.type as string) === 'checklist');
+      setChecklist((checklistCard as any)?.content?.checklist ?? []);
       setSummary(payload.assistant_message ?? '');
       setAssistantTurn(payload);
     };
@@ -121,15 +122,16 @@ export default function ChecklistPage() {
           ))}
         </ul>
       </section>
-
       {assistantTurn && (
         <section className="card">
           <div className="text-sm uppercase tracking-[0.2em] text-uwred">Questions to ask</div>
           <ul className="mt-4 list-disc pl-5 text-muted">
-            {(assistantTurn.ui_cards.find((card) => card.type === 'questions_to_ask')?.content.questions ??
-              []).map((question) => (
-                <li key={question}>{question}</li>
-              ))}
+            {(
+              (assistantTurn.ui_cards.find((card) => (card.type as string) === 'questions_to_ask') as any)
+                ?.content?.questions ?? []
+            ).map((question: string) => (
+              <li key={question}>{question}</li>
+            ))}
           </ul>
         </section>
       )}

@@ -20,7 +20,25 @@ const DEFAULT_FILES = [
   'JAMA Guidelines for Adrenalectomy.pdf',
   'Primary Aldosteronism- An Endocrine Society Clinical Practice Guideline.pdf',
   'primary-aldosteronism Family Medicine Clinical Guidelines.pdf',
-  'Emergency_Severity_Index_Handbook.pdf'
+  'Emergency_Severity_Index_Handbook.pdf',
+  // UpToDate Articles
+  'Adrenal hyperandrogenism - UpToDate.pdf',
+  'Causes of primary adrenal insufficiency (Addison disease) - UpToDate.pdf',
+  'Comorbidities in mild autonomous cortisol secretion and the effect of treatment.pdf',
+  'Cushing syndrome due to primary bilateral macronodular adrenal hyperplasia - UpToDate.pdf',
+  'Determining the etiology of adrenal insufficiency in adults - UpToDate.pdf',
+  'Diagnosis of primary aldosteronism - UpToDate.pdf',
+  'Epidemiology and clinical manifestations of Cushing syndrome - UpToDate.pdf',
+  'Establishing the diagnosis of Cushing syndrome - UpToDate.pdf',
+  'European Society of Endocrinology clinical practice.pdf',
+  'Evaluation and management of the adrenal incidentaloma - UpToDate.pdf',
+  'Mild autonomous cortisol secretion pathophysiology, comorbidities and management approaches.pdf',
+  'NEJM pheochromocytoma and paraganglioma.pdf',
+  'Overview of the treatment of Cushing syndrome - UpToDate.pdf',
+  'Perioperative Management of Pheochromocytoma.pdf',
+  'Surgical anatomy of the adrenal glands - UpToDate.pdf',
+  'THE EVALUATION OF INCIDENTALLY DISCOVERED ADRENAL MASSES.pdf'
+
 ].map((name) => path.resolve(process.cwd(), 'Reference documents', name));
 
 const EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL ?? 'text-embedding-3-small';
@@ -180,14 +198,32 @@ async function main() {
     console.log(`Ingesting: ${sourceDoc}`);
     const pages = await extractPdfPages(filePath);
 
-    // Use token-based recursive chunking (512-token target with sentence boundary snapping)
-    const chunks = chunkPagesByTokens(pages, {
-      minTokens: args.minTokens,
-      maxTokens: args.maxTokens,
-      targetTokens: args.targetTokens,
-      overlapTokens: args.overlapTokens
+
+    //SEMANTIC CHUNKING USING OPENAI: ARGS (max tokens: 512, Threshold 0.72)
+      if (!openai) {
+      throw new Error('OPENAI_API_KEY is required to use chunkPagesSemantic.');
+    }
+
+    const chunks = await chunkPagesSemantic(pages, openai, {
+      embeddingModel: EMBEDDING_MODEL,
+      maxChunkChars: args.maxTokens ? args.maxTokens * 4 : 2800,
+      relevanceThreshold: 0.72,
     });
-    console.log(`  ${chunks.length} chunks (token-based, target 512)`);
+    console.log(`  ${chunks.length} chunks (semantic)`);
+
+
+
+    // Use token-based recursive chunking (512-token target with sentence boundary snapping)
+    // const chunks = chunkPagesByTokens(pages, {
+    //   minTokens: args.minTokens,
+    //   maxTokens: args.maxTokens,
+    //   targetTokens: args.targetTokens,
+    //   overlapTokens: args.overlapTokens
+    // });
+    // console.log(`  ${chunks.length} chunks (token-based, target 512)`);
+
+
+    //check for duplicate chunks
     const deduped = dedupeChunksByHash(chunks);
     if (deduped.length === 0) {
       console.warn(
@@ -195,6 +231,7 @@ async function main() {
       );
       continue;
     }
+
 
     for (const chunk of deduped) {
       const existing = await prisma.knowledgeChunk.findUnique({

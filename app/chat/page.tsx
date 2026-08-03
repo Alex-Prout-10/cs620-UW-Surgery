@@ -1,40 +1,40 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { AssistantTurn } from "@/lib/schemas";
 import CardRenderer from "@/components/cards/CardRenderer";
 import CitationList from "@/components/CitationList";
 import PipelineTraceCard from "@/components/cards/PipelineTraceCard";
 
-declare global {
-  interface SpeechRecognitionEvent extends Event {
-    results: SpeechRecognitionResultList;
-  }
-  interface SpeechRecognitionErrorEvent extends Event {
-    error: string;
-  }
-  interface SpeechRecognitionResultList {
-    readonly length: number;
-    [index: number]: SpeechRecognitionResult;
-  }
-  interface SpeechRecognitionResult {
-    readonly isFinal: boolean;
-    [index: number]: SpeechRecognitionAlternative;
-  }
-  interface SpeechRecognitionAlternative {
-    readonly transcript: string;
-    readonly confidence: number;
-  }
-  interface SpeechRecognition extends EventTarget {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    onresult: ((event: SpeechRecognitionEvent) => void) | null;
-    onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-    onend: (() => void) | null;
-    start(): void;
-    stop(): void;
-    abort(): void;
-  }
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+}
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+}
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  [index: number]: SpeechRecognitionResult;
+}
+interface SpeechRecognitionResult {
+  readonly isFinal: boolean;
+  [index: number]: SpeechRecognitionAlternative;
+}
+interface SpeechRecognitionAlternative {
+  readonly transcript: string;
+  readonly confidence: number;
+}
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
 }
 
 type ChatMessage = {
@@ -358,25 +358,49 @@ export default function ChatPage() {
     <div className="grid gap-6">
       {/* Ask Your Questions header */}
       <section id="chat" className="card fade-in scroll-mt-24">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-4">
+          {/* Header Title */}
           <div>
-            <h1 className="font-serif text-3xl text-darkgray">Chat</h1>
-            <p className="mt-2 text-muted">
-              Ask about your tests, how to get ready, or what happens next after
-              your referral.
+            <h1 className="font-serif text-3xl text-gray-800">
+              Adrenal Nodule Chatbot
+            </h1>
+          </div>
+
+          {/* Guidance Banner (Full Width, Larger & Softer Dark Gray Text) */}
+          <div className="w-full rounded-2xl bg-gray-50/80 p-5 text-base text-gray-700 border border-uwred/30 shadow-sm">
+            <p className="font-semibold text-uwred text-lg mb-2">Guide:</p>
+            <p className="leading-relaxed">
+              Ask questions specifically about{" "}
+              <strong className="font-semibold text-gray-900">
+                adrenal nodules
+              </strong>
+              ,{" "}
+              <strong className="font-semibold text-gray-900">
+                preparing for tests
+              </strong>
+              , and{" "}
+              <strong className="font-semibold text-gray-900">
+                navigating your follow-up care
+              </strong>
+              . This chatbot is strictly designed to help you understand your
+              care path and next steps — it cannot diagnose conditions, answer
+              unrelated medical questions, or replace advice from your care
+              team.
             </p>
           </div>
 
-          {/* New Chat Reset Button */}
+          {/* Compact, Centered Reset / New Chat Button Below Banner */}
           {messages.length > 0 && (
-            <button
-              type="button"
-              onClick={handleClearHistory}
-              disabled={clearing}
-              className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-darkgray shadow-sm transition hover:border-uwred hover:text-uwred disabled:opacity-50 shrink-0"
-            >
-              {clearing ? "Resetting…" : "New Chat"}
-            </button>
+            <div className="flex justify-center mt-1">
+              <button
+                type="button"
+                onClick={handleClearHistory}
+                disabled={clearing}
+                className="rounded-full border border-gray-300 bg-white px-5 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-uwred hover:text-uwred disabled:opacity-50"
+              >
+                {clearing ? "Resetting…" : "Start New Chat"}
+              </button>
+            </div>
           )}
         </div>
 
@@ -387,7 +411,7 @@ export default function ChatPage() {
         )}
       </section>
 
-      {messages.length === 0 && (
+      {/* {messages.length === 0 && (
         <section className="flex flex-wrap justify-center gap-2 -mt-2">
           {starterPrompts.map((prompt) => (
             <button
@@ -400,8 +424,7 @@ export default function ChatPage() {
             </button>
           ))}
         </section>
-      )}
-
+      )} */}
 
       {/* Message Timeline Log */}
       <section className="grid gap-4">
@@ -461,7 +484,82 @@ export default function ChatPage() {
                 </button>
               )}
             </div>
-            <p className="mt-3 text-base text-darkgray">{message.content}</p>
+
+            {/* react */}
+
+            <div className="mt-3 text-base text-darkgray">
+              {message.role === "user" ? (
+                <p>{message.content}</p>
+              ) : (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h1: ({ children }) => (
+                      <h1 className="text-xl font-bold text-darkgray mt-4 mb-2 first:mt-0">
+                        {children}
+                      </h1>
+                    ),
+                    h2: ({ children }) => (
+                      <h2 className="text-lg font-bold text-darkgray mt-4 mb-2 first:mt-0">
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 className="text-base font-semibold text-darkgray mt-3 mb-1 first:mt-0">
+                        {children}
+                      </h3>
+                    ),
+                    h4: ({ children }) => (
+                      <h4 className="text-sm font-semibold text-darkgray mt-2 mb-1 first:mt-0">
+                        {children}
+                      </h4>
+                    ),
+                    p: ({ children }) => (
+                      <p className="mb-3 leading-relaxed last:mb-0">
+                        {children}
+                      </p>
+                    ),
+                    strong: ({ children }) => (
+                      <strong className="font-semibold text-darkgray">
+                        {children}
+                      </strong>
+                    ),
+                    em: ({ children }) => (
+                      <em className="italic text-darkgray">{children}</em>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="my-3 ml-6 list-decimal space-y-2 block">
+                        {children}
+                      </ol>
+                    ),
+                    ul: ({ children }) => (
+                      <ul className="my-3 ml-6 list-disc space-y-2 block">
+                        {children}
+                      </ul>
+                    ),
+                    li: ({ children }) => (
+                      <li className="block w-full list-item pl-1 leading-relaxed">
+                        {children}
+                      </li>
+                    ),
+                    blockquote: ({ children }) => (
+                      <blockquote className="my-3 border-l-4 border-gray-300 pl-4 italic text-gray-700">
+                        {children}
+                      </blockquote>
+                    ),
+                    code: ({ children }) => (
+                      <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono text-darkgray">
+                        {children}
+                      </code>
+                    ),
+                  }}
+                >
+                  {/* quick fix for qustions - need to update the pipeline to make questions more accurate */}
+                  {message.content.replace(/(\.|\b)\s*(\d+\.\s+)/g, ".\n\n$2").replace(/###\s*Questions You Might Want to Ask[\s\S]*/gi, "")}
+                  
+                </ReactMarkdown>
+              )}
+            </div>
 
             {message.role === "assistant" && message.data && (
               <div className="mt-4 grid gap-4 text-sm text-muted">
@@ -470,14 +568,8 @@ export default function ChatPage() {
                     <div className="font-semibold">Triage guidance</div>
                     <div>
                       {(() => {
-                        const handoffCard = message.data.ui_cards.find(
-                          (card) => card.type === "handoff",
-                        );
-                        const handoffMessage =
-                          handoffCard?.content?.handoff?.message?.trim();
-                        if (handoffMessage) return handoffMessage;
                         if (message.data.triage_level === "contact_clinic") {
-                          return "Please call your clinic to talk about your symptoms.";
+                          return "Please call your clinic to discuss concerns about symptoms or follow up procedures.";
                         }
                         if (message.data.triage_level === "urgent") {
                           return "Please go to urgent care or call your doctor today about your symptoms.";
@@ -488,15 +580,10 @@ export default function ChatPage() {
                   </div>
                 )}
 
-                <div className="text-xs uppercase tracking-[0.2em] text-uwred">
+                {/* <div className="text-xs uppercase tracking-[0.2em] text-uwred">
                   Mode: {message.data.mode} | Triage:{" "}
                   {message.data.triage_level}
-                </div>
-
-                <div>
-                  <div className="font-semibold text-darkgray">Disclaimer</div>
-                  <p className="mt-2">{message.data.disclaimer}</p>
-                </div>
+                </div> */}
 
                 <div className="grid gap-3">
                   {message.data.ui_cards.map((card, index) => (
@@ -521,7 +608,7 @@ export default function ChatPage() {
                   ))}
                 </div>
 
-                {message.data.suggested_actions?.length > 0 && (
+                {/* {message.data.suggested_actions?.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {message.data.suggested_actions.map((action) => (
                       <button
@@ -549,15 +636,15 @@ export default function ChatPage() {
                       </button>
                     ))}
                   </div>
-                )}
+                )} */}
 
                 {message.data.citations.length > 0 && (
                   <CitationList citations={message.data.citations} />
                 )}
 
-                {message.pipeline_trace && (
+                {/* {message.pipeline_trace && (
                   <PipelineTraceCard trace={message.pipeline_trace} />
-                )}
+                )} */}
               </div>
             )}
           </article>
