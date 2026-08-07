@@ -6,6 +6,7 @@ import type { AssistantTurn } from "@/lib/schemas";
 import CardRenderer from "@/components/cards/CardRenderer";
 import CitationList from "@/components/CitationList";
 import PipelineTraceCard from "@/components/cards/PipelineTraceCard";
+import { DRAFT_COMMON_QUESTIONS } from "@/lib/commonQuestions";
 
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
@@ -43,6 +44,7 @@ type ChatMessage = {
   content: string;
   data?: AssistantTurn;
   pipeline_trace?: any;
+  responseTimeMs?: number;
 };
 
 export default function ChatPage() {
@@ -166,6 +168,7 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
+      const requestStart = performance.now();
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -187,6 +190,7 @@ export default function ChatPage() {
         content: data.assistant_message,
         data,
         pipeline_trace: payload.pipeline_trace ?? null,
+        responseTimeMs: Math.round(performance.now() - requestStart),
       };
       setMessages((prev) => [...prev, assistantMessage]);
       if (typeof window !== "undefined") {
@@ -333,26 +337,6 @@ export default function ChatPage() {
     setIsRecording(true);
   };
 
-  //COMMON QUESTIONS TO ASK
-  const starterPrompts = [
-    {
-      label: "What happens next?",
-      value: "What are the usual next steps after an adrenal nodule is found?",
-    },
-    {
-      label: "Do I need blood or urine tests?",
-      value: "Do I need blood or urine tests for my adrenal nodule?",
-    },
-    {
-      label: "When is specialty care needed?",
-      value: "When would I need to see a specialist for my adrenal nodule?",
-    },
-    {
-      label: "How do I prepare for testing?",
-      value: "How do I prepare for adrenal nodule testing?",
-    },
-  ];
-
   return (
     <div className="grid gap-6">
       {/* Ask Your Questions header */}
@@ -410,20 +394,23 @@ export default function ChatPage() {
         )}
       </section>
 
-      {/* {messages.length === 0 && (
+      {messages.length === 0 && (
         <section className="flex flex-wrap justify-center gap-2 -mt-2">
-          {starterPrompts.map((prompt) => (
+          <p className="w-full text-center text-sm text-muted">
+            Common questions (draft)
+          </p>
+          {DRAFT_COMMON_QUESTIONS.map((question) => (
             <button
-              key={prompt.label}
+              key={question.id}
               type="button"
-              onClick={() => handleQuickReply(prompt.value)}
+              onClick={() => handleQuickReply(question.prompt)}
               className="rounded-full border border-uwred/40 bg-white/80 px-4 py-2 text-sm text-uwred transition hover:border-uwred hover:bg-uwred/5"
             >
-              {prompt.label}
+              {question.label}
             </button>
           ))}
         </section>
-      )} */}
+      )}
 
       {/* Message Timeline Log */}
       <section className="grid gap-4">
@@ -559,6 +546,12 @@ export default function ChatPage() {
                 </ReactMarkdown>
               )}
             </div>
+
+            {message.role === "assistant" && message.responseTimeMs != null && (
+              <p className="mt-3 text-xs text-muted">
+                Response time: {(message.responseTimeMs / 1000).toFixed(1)} seconds
+              </p>
+            )}
 
             {message.role === "assistant" && message.data && (
               <div className="mt-4 grid gap-4 text-sm text-muted">

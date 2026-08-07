@@ -18,6 +18,8 @@ The work so far keeps the existing OpenAI agent pipeline and retrieval-augmented
 | Server-issued session ID | `app/api/chat/route.ts`, `app/chat/page.tsx` | A browser keeps one chat session across messages. |
 | Recent-turn memory | `lib/dialogueEngine.ts` | The answer model can see the most recent three user/assistant exchanges. |
 | Smaller RAG context | `lib/dialogueEngine.ts` | The answer model receives 6 retrieved passages instead of 12. |
+| Removed adrenal-insufficiency sources | Neon knowledge database | 41 chunks from two adrenal-insufficiency documents no longer participate in retrieval. |
+| Draft common questions | `lib/commonQuestions.ts`, `app/chat/page.tsx` | Four editable starter prompts are available while clinician-reviewed answers are pending. |
 | UW emblem in header | `components/Nav.tsx`, `public/uw-madison-emblem.png` | The site header now displays the UW emblem beside the application title. |
 
 ## 1. Session IDs and cookies
@@ -78,6 +80,15 @@ The retrieval function still ranks knowledge chunks in the same way. The code no
 
 This is a retrieval-context change, not a source-document chunking change. The ingestion process that splits PDFs into chunks remains unchanged.
 
+### Source removal
+
+The following two source documents were removed from the active Neon knowledge database because they introduced testing information outside this clinic's workflow:
+
+- `Causes of primary adrenal insufficiency (Addison disease) - UpToDate.pdf`
+- `Determining the etiology of adrenal insufficiency in adults - UpToDate.pdf`
+
+This removed 41 knowledge chunks. Their embeddings were deleted automatically with the related chunks, so future retrieval cannot cite or use those documents.
+
 ### Why it should help
 
 Fewer passages mean fewer input tokens for the answer model. This can reduce latency and cost, and it may make the answer more focused by lowering the chance of including weakly related passages.
@@ -86,7 +97,15 @@ Fewer passages mean fewer input tokens for the answer model. This can reduce lat
 
 Test a few broad and detailed clinical questions. If answers lose useful detail or citations, try 8 chunks before changing the ingestion/chunking algorithm itself.
 
-## 4. Remaining chat latency
+## 4. Draft common questions
+
+The chat screen now shows four draft common-question prompts based on existing test questions. Selecting one only fills the chat input; it does not provide a hardcoded clinical answer or make an additional API request.
+
+Until endocrinologist-reviewed questions and answers are available, these prompts continue through the normal safety and source-retrieval pipeline. This avoids publishing unreviewed medical content.
+
+When reviewed answers are available, the next step is to store each approved answer with its citations and source version in Neon. Exact common-question matches can then return the approved cached answer without calling the model, while all other questions keep the current full pipeline.
+
+## 5. Remaining chat latency
 
 The application still preserves its existing multi-step safety architecture. A typical live request can include:
 
@@ -98,7 +117,7 @@ The application still preserves its existing multi-step safety architecture. A t
 
 The recent-history lookup is parallelized, but the multi-model agent pipeline remains the main source of latency. A later, separate optimization could merge the three safety/routing agent calls into one structured decision call. That should be reviewed carefully because it changes safety behavior, not just speed.
 
-## 5. Session-ID privacy assessment
+## 6. Session-ID privacy assessment
 
 ### Are these IDs anonymous?
 
