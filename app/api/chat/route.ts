@@ -9,6 +9,17 @@ export const runtime = 'nodejs';
 
 const DISCLAIMER = `${BASE_DISCLAIMERS[0]} ${BASE_DISCLAIMERS[1]}`;
 
+function jsonWithSession(data: object, sessionId: string) {
+  const response = NextResponse.json(data);
+  response.cookies.set('session_id', sessionId, {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    secure: process.env.NODE_ENV === 'production'
+  });
+  return response;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -20,9 +31,11 @@ export async function POST(request: NextRequest) {
     const injectionScan = stripPromptInjection(userMessage);
     const cleanedMessage = injectionScan.cleaned;
     const sanitizedMessage = cleanedMessage || userMessage.trim();
+    const requestedSessionId = typeof body?.session_id === 'string' ? body.session_id : null;
+    const sessionId = requestedSessionId || request.cookies.get('session_id')?.value || crypto.randomUUID();
 
     if (injectionScan.isLikely && !cleanedMessage) {
-      return NextResponse.json({
+      return jsonWithSession({
         mode: 'faq',
         assistant_message:
           'I can help with general questions about adrenal nodules and testing, but I cannot follow requests to ' +
@@ -35,10 +48,8 @@ export async function POST(request: NextRequest) {
         ],
         triage_level: 'none',
         pipeline_trace: null
-      });
+      }, sessionId);
     }
-
-    const sessionId = typeof body?.session_id === 'string' ? body.session_id : request.cookies.get('session_id')?.value;
 
     // Run agent pipeline before dialogue engine
     let pipelineTrace: PipelineTrace | null = null;
@@ -52,7 +63,7 @@ export async function POST(request: NextRequest) {
       pipelineTrace = pipelineResult.trace;
 
       if (pipelineResult.action === 'medical_emergency') {
-        return NextResponse.json({
+        return jsonWithSession({
           mode: 'triage',
           assistant_message:
             'What you are describing sounds like it needs help right away.\n\n' +
@@ -64,11 +75,11 @@ export async function POST(request: NextRequest) {
           suggested_actions: [],
           triage_level: 'emergency',
           pipeline_trace: pipelineTrace
-        });
+        }, sessionId);
       }
 
       if (pipelineResult.action === 'block') {
-        return NextResponse.json({
+        return jsonWithSession({
           mode: 'faq',
           assistant_message:
             'Sorry, I can only answer questions about adrenal nodules (spots on the adrenal gland). ' +
@@ -82,11 +93,11 @@ export async function POST(request: NextRequest) {
           ],
           triage_level: 'none',
           pipeline_trace: pipelineTrace
-        });
+        }, sessionId);
       }
 
       if (pipelineResult.action === 'clarify') {
-        return NextResponse.json({
+        return jsonWithSession({
           mode: 'faq',
           assistant_message: pipelineResult.question,
           disclaimer: DISCLAIMER,
@@ -97,7 +108,7 @@ export async function POST(request: NextRequest) {
           ],
           triage_level: 'none',
           pipeline_trace: pipelineTrace
-        });
+        }, sessionId);
       }
 
       // action === 'proceed': continue with original query
@@ -147,7 +158,7 @@ export async function POST(request: NextRequest) {
 
     }
 
-    return NextResponse.json(responseWithTrace);
+    return jsonWithSession(responseWithTrace, sessionId);
   } catch (error) {
     console.error('Chat API error', error);
     return NextResponse.json(

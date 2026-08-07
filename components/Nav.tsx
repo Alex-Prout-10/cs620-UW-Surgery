@@ -30,9 +30,18 @@ export default function Nav() {
 
     <nav className="flex flex-col gap-4 md:grid md:grid-cols-[auto,1fr,auto] md:items-center">
       {/*navigate home ref button*/}
-      <Link href="/">
-        <span className="text-sm uppercase tracking-[0.3em] text-uwred">Adrenal Nodule Clinic Navigator</span>
-        <div className="font-serif text-2xl text-darkgray">Patient Guide</div>
+      <Link href="/" className="flex items-center gap-3">
+        <img
+          src="/uw-madison-emblem.png"
+          alt="University of Wisconsin–Madison emblem"
+          width={48}
+          height={64}
+          className="h-14 w-auto shrink-0"
+        />
+        <div>
+          <span className="text-sm uppercase tracking-[0.3em] text-uwred">Adrenal Nodule Clinic Navigator</span>
+          <div className="font-serif text-2xl text-darkgray">Patient Guide</div>
+        </div>
       </Link>
 
 
