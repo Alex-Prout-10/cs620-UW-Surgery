@@ -51,6 +51,7 @@ type Args = {
   paths: string[];
   version: number;
   dryRun: boolean;
+  replaceSource: boolean;
   minTokens?: number;
   maxTokens?: number;
   targetTokens?: number;
@@ -61,7 +62,8 @@ function parseArgs(argv: string[]): Args {
   const args: Args = {
     paths: [],
     version: 1,
-    dryRun: false
+    dryRun: false,
+    replaceSource: false
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -86,6 +88,10 @@ function parseArgs(argv: string[]): Args {
     }
     if (arg === '--dry-run') {
       args.dryRun = true;
+      continue;
+    }
+    if (arg === '--replace-source') {
+      args.replaceSource = true;
       continue;
     }
     if (arg === '--minTokens' && argv[i + 1]) {
@@ -252,6 +258,12 @@ async function main() {
     }
 
     console.log(`Ingesting: ${sourceDoc}`);
+    if (args.replaceSource && !args.dryRun) {
+      const removed = await prisma.knowledgeChunk.deleteMany({
+        where: { sourceDoc }
+      });
+      console.log(`  Removed ${removed.count} existing chunks for this source`);
+    }
     const pages = await extractDocumentPages(filePath);
 
 
@@ -260,12 +272,20 @@ async function main() {
       throw new Error('OPENAI_API_KEY is required to use chunkPagesSemantic.');
     }
 
-    const chunks = await chunkPagesSemantic(pages, openai, {
-      embeddingModel: EMBEDDING_MODEL,
-      maxChunkChars: args.maxTokens ? args.maxTokens * 4 : 2800,
-      relevanceThreshold: 0.72,
-    });
-    console.log(`  ${chunks.length} chunks (semantic)`);
+    const isDocx = path.extname(filePath).toLowerCase() === '.docx';
+    const chunks = isDocx
+      ? chunkPagesByTokens(pages, {
+          minTokens: args.minTokens,
+          maxTokens: args.maxTokens ?? 350,
+          targetTokens: args.targetTokens ?? 250,
+          overlapTokens: args.overlapTokens ?? 40,
+        })
+      : await chunkPagesSemantic(pages, openai, {
+          embeddingModel: EMBEDDING_MODEL,
+          maxChunkChars: args.maxTokens ? args.maxTokens * 4 : 2800,
+          relevanceThreshold: 0.72,
+        });
+    console.log(`  ${chunks.length} chunks (${isDocx ? 'token-based' : 'semantic'})`);
 
 
 

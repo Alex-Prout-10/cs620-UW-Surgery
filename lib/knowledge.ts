@@ -73,7 +73,7 @@ const SAMPLE_CHUNKS: KnowledgeChunkRecord[] = [
 
 const EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL ?? 'text-embedding-3-small';
 
-function makeSnippet(text: string, maxLength = 320) {
+function makeSnippet(text: string, maxLength = 1200) {
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength).trim()}…`;
 }
@@ -114,6 +114,33 @@ export function rankChunksByKeyword(query: string, chunks: KnowledgeChunkRecord[
     .map((item) => item.chunk);
 }
 
+function selectDiverseChunks(
+  rankedChunks: KnowledgeChunkRecord[],
+  totalLimit: number,
+  maxPerSource: number,
+) {
+  const selected: KnowledgeChunkRecord[] = [];
+  const sourceCounts = new Map<string, number>();
+
+  for (const chunk of rankedChunks) {
+    const count = sourceCounts.get(chunk.sourceDoc) ?? 0;
+    if (count >= maxPerSource) continue;
+    selected.push(chunk);
+    sourceCounts.set(chunk.sourceDoc, count + 1);
+    if (selected.length === totalLimit) return selected;
+  }
+
+  // If the knowledge base has too few distinct sources for the requested
+  // limit, preserve relevance by filling the remaining slots in rank order.
+  for (const chunk of rankedChunks) {
+    if (selected.some((item) => item.id === chunk.id)) continue;
+    selected.push(chunk);
+    if (selected.length === totalLimit) break;
+  }
+
+  return selected;
+}
+
 export function cosineSimilarity(a: number[], b: number[]) {
   if (a.length !== b.length || a.length === 0) return 0;
   let dot = 0;
@@ -139,7 +166,11 @@ async function getQueryEmbedding(query: string) {
   return vector ?? null;
 }
 
-export async function retrieveRelevantChunks(query: string, k = 4) {
+export async function retrieveRelevantChunks(
+  query: string,
+  totalLimit = 4,
+  maxPerSource = 2,
+) {
   const chunks = await getKnowledgeChunks();
   if (chunks.length === 0) {
     return { chunks: [] as RetrievalChunk[] };
@@ -190,7 +221,7 @@ export async function retrieveRelevantChunks(query: string, k = 4) {
   }
 
   return {
-    chunks: rankedChunks.slice(0, k).map((chunk) => ({
+    chunks: selectDiverseChunks(rankedChunks, totalLimit, maxPerSource).map((chunk) => ({
       chunk_id: chunk.id,
       source_doc: chunk.sourceDoc,
       page_range:

@@ -535,7 +535,7 @@ export default function ChatPage() {
                       </h4>
                     ),
                     p: ({ children }) => (
-                      <p className="mb-3 leading-relaxed last:mb-0">
+                      <p className="mb-3 whitespace-pre-line leading-relaxed last:mb-0">
                         {children}
                       </p>
                     ),
@@ -595,8 +595,7 @@ export default function ChatPage() {
                     },
                   }}
                 >
-                  {/* quick fix for qustions - need to update the pipeline to make questions more accurate */}
-                  {message.content.replace(/(\.|\b)\s*(\d+\.\s+)/g, ".\n\n$2").replace(/###\s*Questions You Might Want to Ask[\s\S]*/gi, "")}
+                  {message.content.replace(/###\s*Questions You Might Want to Ask[\s\S]*/gi, "")}
                   
                 </ReactMarkdown>
               )}

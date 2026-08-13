@@ -37,11 +37,26 @@ async function getScopeConversationContext(sessionId: string): Promise<string[]>
         return [`User: ${message.contentText.slice(0, 1200)}`];
       }
       if (message.role === 'assistant') {
-        const content = (message.contentJson as { assistant_message?: unknown } | null)
-          ?.assistant_message;
-        if (typeof content === 'string' && content.trim()) {
-          return [`Navigator: ${content.slice(0, 1200)}`];
+        const turn = message.contentJson as {
+          assistant_message?: unknown;
+          ui_cards?: unknown;
+        } | null;
+        const context: string[] = [];
+        if (typeof turn?.assistant_message === 'string' && turn.assistant_message.trim()) {
+          context.push(`Navigator: ${turn.assistant_message.slice(0, 1200)}`);
         }
+        const cardQuestions = Array.isArray(turn?.ui_cards)
+          ? turn.ui_cards.flatMap((card): string[] => {
+              const questions = (card as { content?: { questions?: unknown } })?.content?.questions;
+              return Array.isArray(questions)
+                ? questions.filter((question): question is string => typeof question === 'string')
+                : [];
+            })
+          : [];
+        if (cardQuestions.length > 0) {
+          context.push(`Navigator follow-up questions: ${cardQuestions.join(' | ').slice(0, 1200)}`);
+        }
+        return context;
       }
       return [];
     });
