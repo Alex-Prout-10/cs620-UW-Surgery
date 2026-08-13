@@ -67,6 +67,23 @@ export default function ChatPage() {
   );
   const preRecordInputRef = useRef("");
 
+  const revealAssistantMessage = async (messageId: string, content: string) => {
+    const charactersPerFrame = 4;
+    for (let index = charactersPerFrame; index < content.length; index += charactersPerFrame) {
+      setMessages((previous) =>
+        previous.map((message) =>
+          message.id === messageId ? { ...message, content: content.slice(0, index) } : message,
+        ),
+      );
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 16));
+    }
+    setMessages((previous) =>
+      previous.map((message) =>
+        message.id === messageId ? { ...message, content } : message,
+      ),
+    );
+  };
+
   useEffect(() => {
     const SR =
       (window as any).SpeechRecognition ||
@@ -146,11 +163,11 @@ export default function ChatPage() {
   useEffect(() => {
     if (messages.length === 0) return;
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role === "user" || loading) {
+    if (lastMessage.role === "user") {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     } else if (lastMessage.role === "assistant") {
       latestResponseRef.current?.scrollIntoView({
-        behavior: "smooth",
+        behavior: loading ? "auto" : "smooth",
         block: "start",
       });
     }
@@ -166,6 +183,11 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
+    const assistantMessageId = crypto.randomUUID();
+    setMessages((prev) => [
+      ...prev,
+      { id: assistantMessageId, role: "assistant", content: "", responseTimeMs: undefined },
+    ]);
 
     try {
       const requestStart = performance.now();
@@ -184,28 +206,31 @@ export default function ChatPage() {
       }
       const data = payload as AssistantTurn;
 
-      const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: data.assistant_message,
-        data,
-        pipeline_trace: payload.pipeline_trace ?? null,
-        responseTimeMs: Math.round(performance.now() - requestStart),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+      await revealAssistantMessage(assistantMessageId, data.assistant_message);
+      setMessages((previous) =>
+        previous.map((message) =>
+          message.id === assistantMessageId
+            ? {
+                ...message,
+                data,
+                pipeline_trace: payload.pipeline_trace ?? null,
+                responseTimeMs: Math.round(performance.now() - requestStart),
+              }
+            : message,
+        ),
+      );
       if (typeof window !== "undefined") {
         sessionStorage.setItem("navigator_last_response", JSON.stringify(data));
       }
     } catch (error) {
       console.error("Chat error", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: "Sorry, something went wrong. Please try again.",
-        },
-      ]);
+      setMessages((previous) =>
+        previous.map((message) =>
+          message.id === assistantMessageId
+            ? { ...message, content: "Sorry, something went wrong. Please try again." }
+            : message,
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -476,9 +501,18 @@ export default function ChatPage() {
             <div className="mt-3 text-base text-darkgray">
               {message.role === "user" ? (
                 <p>{message.content}</p>
+              ) : !message.content && loading ? (
+                <div className="flex items-center gap-1.5" aria-label="Navigator is preparing a response">
+                  <span className="thinking-dot" />
+                  <span className="thinking-dot thinking-dot-delay-1" />
+                  <span className="thinking-dot thinking-dot-delay-2" />
+                </div>
               ) : (
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
+                  urlTransform={(url) =>
+                    /^citation:\d+$/.test(url) ? url : ""
+                  }
                   components={{
                     h1: ({ children }) => (
                       <h1 className="text-xl font-bold text-darkgray mt-4 mb-2 first:mt-0">
@@ -538,6 +572,27 @@ export default function ChatPage() {
                         {children}
                       </code>
                     ),
+                    a: ({ href, children }) => {
+                      const citationNumber = href?.match(/^citation:(\d+)$/)?.[1];
+                      const citationIndex = citationNumber
+                        ? Number(citationNumber) - 1
+                        : -1;
+                      const citation = message.data?.citations[citationIndex];
+
+                      if (citation) {
+                        return (
+                          <span
+                            className="mx-0.5 inline-flex align-super rounded-full border border-uwred/30 bg-uwred/5 px-1.5 py-0.5 text-[0.65rem] font-semibold leading-none text-uwred"
+                            title={`Source ${citationNumber}; see Sources below`}
+                            aria-label={`Source ${citationNumber}`}
+                          >
+                            {children}
+                          </span>
+                        );
+                      }
+
+                      return <span>{children}</span>;
+                    },
                   }}
                 >
                   {/* quick fix for qustions - need to update the pipeline to make questions more accurate */}
@@ -642,7 +697,7 @@ export default function ChatPage() {
           </article>
         ))}
 
-        {loading && (
+        {loading && messages[messages.length - 1]?.role === "user" && (
           <article className="card">
             <div className="text-xs uppercase tracking-[0.2em] text-uwred">
               Navigator

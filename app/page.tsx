@@ -45,6 +45,50 @@ export default function HomePage() {
         </ol>
       </section>
 
+      <section className="card fade-in">
+        <h2 className="font-serif text-xl text-darkgray">Lab Testing Resources</h2>
+        <p className="mt-1 text-sm text-muted">
+          Review this guide to understand the lab tests that may be part of your adrenal nodule evaluation.
+        </p>
+        <div className="relative mt-4 overflow-hidden rounded-xl border border-accent/60 bg-white">
+          <iframe
+            src="/pdfjs-viewer.html?file=%2Fadrenal-lab-testing-guide.pdf&scale=0.58"
+            title="Lab Testing Guide preview"
+            className="pointer-events-none h-[500px] w-full border-0"
+          />
+          <a
+            href="/adrenal-lab-testing-guide.pdf"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open the Lab Testing Guide PDF in full size"
+            className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/25 via-transparent to-transparent p-5"
+          >
+            <span className="rounded-full bg-white/95 px-5 py-2 text-sm font-semibold text-uwred shadow-md transition hover:bg-uwred hover:text-white">
+              Open full-size lab testing guide
+            </span>
+          </a>
+        </div>
+        <div className="mt-4">
+          <a
+            href="/adrenal-lab-testing-guide.docx"
+            download
+            className="group flex items-center gap-3 rounded-xl border border-accent/60 bg-white/70 p-4 transition hover:border-uwred/50 hover:shadow-sm"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-uwred/10 text-sm font-bold text-uwred">
+              DOCX
+            </span>
+            <span>
+              <span className="block text-sm font-semibold text-darkgray group-hover:text-uwred">
+                Lab Testing Guide
+              </span>
+              <span className="mt-0.5 block text-xs text-muted">
+                Download the Word document
+              </span>
+            </span>
+          </a>
+        </div>
+      </section>
+
       {/* Button to the Chat Page */}
       <div className="mt-4 text-center">
         <Link 

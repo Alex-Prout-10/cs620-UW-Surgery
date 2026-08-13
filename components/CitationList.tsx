@@ -13,11 +13,12 @@ export default function CitationList({ citations, leadSentences }: CitationListP
     <div>
       <div className="font-semibold text-darkgray">Sources</div>
       <ul className="mt-2 space-y-2">
-        {citations.map((item) => {
+        {citations.map((item, index) => {
           const parsed = parseCitationKey(item.citation_key);
           if (!parsed) {
             return (
               <li key={`${item.citation_key}-${item.quote ?? 'none'}`} className="text-sm">
+                <span className="mr-2 font-semibold text-uwred">[{index + 1}]</span>
                 {item.citation_key}
               </li>
             );
@@ -31,6 +32,7 @@ export default function CitationList({ citations, leadSentences }: CitationListP
             <>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
+                  <span className="mr-2 text-xs font-semibold text-uwred">[{index + 1}]</span>
                   <span className="font-medium text-darkgray">{parsed.displayTitle}</span>
                   {parsed.pageLabel && (
                     <span className="ml-2 text-xs text-muted">({parsed.pageLabel})</span>

@@ -20,6 +20,65 @@ function jsonWithSession(data: object, sessionId: string) {
   return response;
 }
 
+async function getScopeConversationContext(sessionId: string): Promise<string[]> {
+  if (!process.env.DATABASE_URL) return [];
+
+  try {
+    const messages = await prisma.message.findMany({
+      where: { sessionId },
+      orderBy: { createdAt: 'desc' },
+      // Two complete prior exchanges can contain up to four stored messages.
+      take: 4,
+      select: { role: true, contentText: true, contentJson: true }
+    });
+
+    return messages.reverse().flatMap((message): string[] => {
+      if (message.role === 'user' && message.contentText) {
+        return [`User: ${message.contentText.slice(0, 1200)}`];
+      }
+      if (message.role === 'assistant') {
+        const content = (message.contentJson as { assistant_message?: unknown } | null)
+          ?.assistant_message;
+        if (typeof content === 'string' && content.trim()) {
+          return [`Navigator: ${content.slice(0, 1200)}`];
+        }
+      }
+      return [];
+    });
+  } catch (error) {
+    console.warn('Unable to load recent conversation for scope validation.', error);
+    return [];
+  }
+}
+
+async function saveChatTurn(
+  sessionId: string,
+  userMessage: string,
+  assistantResponse: object,
+) {
+  if (!process.env.DATABASE_URL) return;
+
+  await prisma.session.upsert({
+    where: { id: sessionId },
+    update: {},
+    create: { id: sessionId }
+  });
+  await prisma.message.create({
+    data: {
+      sessionId,
+      role: 'user',
+      contentText: userMessage.trim().slice(0, 1200)
+    }
+  });
+  await prisma.message.create({
+    data: {
+      sessionId,
+      role: 'assistant',
+      contentJson: assistantResponse
+    }
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -35,7 +94,7 @@ export async function POST(request: NextRequest) {
     const sessionId = requestedSessionId || request.cookies.get('session_id')?.value || crypto.randomUUID();
 
     if (injectionScan.isLikely && !cleanedMessage) {
-      return jsonWithSession({
+      const response = {
         mode: 'faq',
         assistant_message:
           'I can help with general questions about adrenal nodules and testing, but I cannot follow requests to ' +
@@ -48,7 +107,9 @@ export async function POST(request: NextRequest) {
         ],
         triage_level: 'none',
         pipeline_trace: null
-      }, sessionId);
+      };
+      await saveChatTurn(sessionId, userMessage, response);
+      return jsonWithSession(response, sessionId);
     }
 
     // Run agent pipeline before dialogue engine
@@ -59,11 +120,12 @@ export async function POST(request: NextRequest) {
       process.env.NODE_ENV !== 'test';
 
     if (agentsEnabled) {
-      const pipelineResult = await runAgentPipeline(sanitizedMessage);
+      const scopeConversation = await getScopeConversationContext(sessionId);
+      const pipelineResult = await runAgentPipeline(sanitizedMessage, scopeConversation);
       pipelineTrace = pipelineResult.trace;
 
       if (pipelineResult.action === 'medical_emergency') {
-        return jsonWithSession({
+        const response = {
           mode: 'triage',
           assistant_message:
             'What you are describing sounds like it needs help right away.\n\n' +
@@ -75,11 +137,13 @@ export async function POST(request: NextRequest) {
           suggested_actions: [],
           triage_level: 'emergency',
           pipeline_trace: pipelineTrace
-        }, sessionId);
+        };
+        await saveChatTurn(sessionId, sanitizedMessage, response);
+        return jsonWithSession(response, sessionId);
       }
 
       if (pipelineResult.action === 'block') {
-        return jsonWithSession({
+        const response = {
           mode: 'faq',
           assistant_message:
             'Sorry, I can only answer questions about adrenal nodules (spots on the adrenal gland). ' +
@@ -93,11 +157,13 @@ export async function POST(request: NextRequest) {
           ],
           triage_level: 'none',
           pipeline_trace: pipelineTrace
-        }, sessionId);
+        };
+        await saveChatTurn(sessionId, sanitizedMessage, response);
+        return jsonWithSession(response, sessionId);
       }
 
       if (pipelineResult.action === 'clarify') {
-        return jsonWithSession({
+        const response = {
           mode: 'faq',
           assistant_message: pipelineResult.question,
           disclaimer: DISCLAIMER,
@@ -108,7 +174,9 @@ export async function POST(request: NextRequest) {
           ],
           triage_level: 'none',
           pipeline_trace: pipelineTrace
-        }, sessionId);
+        };
+        await saveChatTurn(sessionId, sanitizedMessage, response);
+        return jsonWithSession(response, sessionId);
       }
 
       // action === 'proceed': continue with original query
@@ -131,32 +199,7 @@ export async function POST(request: NextRequest) {
       pipeline_trace: pipelineTrace
     };
 
-    if (sessionId && process.env.DATABASE_URL) {
-      const sanitizedUserMessage = sanitizedMessage.trim().slice(0, 1200);
-
-      await prisma.session.upsert({
-        where: { id: sessionId },
-        update: {},
-        create: { id: sessionId }
-      });
-
-      await prisma.message.create({
-        data: {
-          sessionId,
-          role: 'user',
-          contentText: sanitizedUserMessage
-        }
-      });
-
-      await prisma.message.create({
-        data: {
-          sessionId,
-          role: 'assistant',
-          contentJson: responseWithTrace as unknown as object
-        }
-      });
-
-    }
+    await saveChatTurn(sessionId, sanitizedMessage, responseWithTrace as unknown as object);
 
     return jsonWithSession(responseWithTrace, sessionId);
   } catch (error) {

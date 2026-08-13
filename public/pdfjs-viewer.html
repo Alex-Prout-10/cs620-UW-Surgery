@@ -7,13 +7,13 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/web/pdf_viewer.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #525659; font-family: system-ui, sans-serif; }
+  body { background: #fff; font-family: system-ui, sans-serif; }
   #viewer { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 0; }
 
   .page-wrap {
     position: relative;
     background: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    box-shadow: 0 2px 8px rgba(0,0,0,.16);
   }
   .page-wrap canvas { display: block; }
 
@@ -23,7 +23,7 @@
     border-radius: 3px;
   }
 
-  #loading { color: #fff; text-align: center; padding: 48px; font-size: 14px; }
+  #loading { color: #4b5563; text-align: center; padding: 48px; font-size: 14px; }
   #error-msg { color: #fca5a5; text-align: center; padding: 48px; font-size: 14px; display: none; }
 </style>
 </head>
@@ -44,6 +44,10 @@ const file = params.get('file');
 const targetPage = parseInt(params.get('page') || '0', 10);
 const targetPageEnd = parseInt(params.get('pageEnd') || '0', 10) || targetPage;
 const search = (params.get('search') || '').trim();
+const requestedScale = parseFloat(params.get('scale') || '1.5');
+const scale = Number.isFinite(requestedScale)
+  ? Math.min(Math.max(requestedScale, 0.4), 3)
+  : 1.5;
 
 console.log('[pdfjs-viewer] search text:', JSON.stringify(search));
 console.log('[pdfjs-viewer] targetPage:', targetPage, 'targetPageEnd:', targetPageEnd);
@@ -70,7 +74,6 @@ async function main(url) {
 
   document.getElementById('loading').style.display = 'none';
   const viewerEl = document.getElementById('viewer');
-  const scale = 1.5;
   const dpr = window.devicePixelRatio || 1;
   let scrollTarget = null;
 

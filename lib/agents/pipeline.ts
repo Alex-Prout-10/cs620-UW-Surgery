@@ -10,29 +10,22 @@ export type PipelineOutcome =
 function buildTrace(
   gatekeeper: GatekeeperResult | null,
   analyzer: AnalyzerResult | null,
-  scope: ScopeResult | null
+  scope: ScopeResult | null,
 ): PipelineTrace {
   return { gatekeeper, analyzer, scope };
 }
 
-export async function runAgentPipeline(rawQuery: string): Promise<PipelineOutcome> {
-  //track time
+export async function runAgentPipeline(
+  rawQuery: string,
+  recentConversation: string[] = [],
+): Promise<PipelineOutcome> {
   const pipelineStart = performance.now();
-  // Step 1: Gatekeeper + Analyzer in parallel (both only need rawQuery)
-  const step1Start = performance.now()
+  // These two checks are independent, so they run concurrently.
   const [gatekeeper, analyzer] = await Promise.all([
-    runGatekeeper(rawQuery).then((result) => {
-      console.log(`[pipeline] Gatekeeper: ${result.category}`);
-      return result;
-    }),
-    runAnalyzer(rawQuery).then((result) => {
-      console.log(`[pipeline] Analyzer: type=${result.type}`);
-      return result;
-    })
+    runGatekeeper(rawQuery),
+    runAnalyzer(rawQuery),
   ]);
-  const step1Duration = Math.round(performance.now() - step1Start);
-  console.log(`[pipeline] Step 1 (Gatekeeper + Analyzer Parallel) took: ${step1Duration}ms`);
-  
+  console.log(`[pipeline] Gatekeeper: ${gatekeeper.category}; analyzer: ${analyzer.type}`);
 
   // Short-circuit on harmful content
   if (gatekeeper.category === 'harmful') {
@@ -52,21 +45,16 @@ export async function runAgentPipeline(rawQuery: string): Promise<PipelineOutcom
     };
   }
 
-  // Step 2: Scope Validator (uses original query + analyzer output)
-
-  const step2Start = performance.now();
-  const scope = await runScopeValidator(rawQuery, analyzer);
-  const step2Duration = Math.round(performance.now() - step2Start);
-  console.log(`[pipeline] Scope: in_scope=${scope.in_scope} took: ${step2Duration}ms`);
-  //total time
-  const totalPipelineTime = Math.round(performance.now() - pipelineStart);
-  console.log(`[pipeline] Total Pipeline Routing Execution Time: ${totalPipelineTime}ms`);
+  // Scope validation needs the analyzer's structured result, so it follows it.
+  const scopeResult = await runScopeValidator(rawQuery, analyzer, recentConversation);
+  const scope = scopeResult;
+  console.log(`[pipeline] Scope: in_scope=${scope.in_scope}; total routing ${Math.round(performance.now() - pipelineStart)}ms`);
 
   if (!scope.in_scope) {
     return {
       action: 'block',
       reason: `This question is outside our knowledge base: ${scope.reason}`,
-      trace: buildTrace(gatekeeper, analyzer, scope)
+      trace: buildTrace(gatekeeper, analyzer, scope),
     };
   }
 
@@ -74,7 +62,7 @@ export async function runAgentPipeline(rawQuery: string): Promise<PipelineOutcom
     return {
       action: 'clarify',
       question: scope.clarification_question,
-      trace: buildTrace(gatekeeper, analyzer, scope)
+      trace: buildTrace(gatekeeper, analyzer, scope),
     };
   }
 

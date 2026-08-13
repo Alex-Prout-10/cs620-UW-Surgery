@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 import fs from 'fs/promises';
+import os from 'os';
 import path from 'path';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import pdf from 'pdf-parse';
 import OpenAI from 'openai';
 import { prisma } from '../lib/prisma';
@@ -42,6 +45,7 @@ const DEFAULT_FILES = [
 ].map((name) => path.resolve(process.cwd(), 'Reference documents', name));
 
 const EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL ?? 'text-embedding-3-small';
+const execFileAsync = promisify(execFile);
 
 type Args = {
   paths: string[];
@@ -174,6 +178,58 @@ async function extractPdfPages(filePath: string) {
   return fallbackPages;
 }
 
+function decodeXmlText(text: string) {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
+async function extractDocxPages(filePath: string) {
+  if (process.platform !== 'win32') {
+    throw new Error('DOCX ingestion currently requires Windows PowerShell.');
+  }
+
+  const extractionDir = await fs.mkdtemp(path.join(os.tmpdir(), 'adrenal-docx-'));
+  const archivePath = path.join(extractionDir, 'document.zip');
+  try {
+    await fs.copyFile(filePath, archivePath);
+    await execFileAsync('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      `Expand-Archive -LiteralPath '${archivePath.replace(/'/g, "''")}' -DestinationPath '${extractionDir.replace(/'/g, "''")}' -Force`,
+    ]);
+    const documentXml = await fs.readFile(
+      path.join(extractionDir, 'word', 'document.xml'),
+      'utf8',
+    );
+    const paragraphs = documentXml.match(/<w:p\b[\s\S]*?<\/w:p>/g) ?? [];
+    const text = paragraphs
+      .map((paragraph) => {
+        const runs = paragraph.match(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g) ?? [];
+        return runs
+          .map((run) => decodeXmlText(run.replace(/<[^>]+>/g, '')))
+          .join('')
+          .trim();
+      })
+      .filter(Boolean)
+      .join('\n\n');
+
+    return text ? [{ page: 1, text }] : [];
+  } finally {
+    await fs.rm(extractionDir, { recursive: true, force: true });
+  }
+}
+
+async function extractDocumentPages(filePath: string) {
+  return path.extname(filePath).toLowerCase() === '.docx'
+    ? extractDocxPages(filePath)
+    : extractPdfPages(filePath);
+}
+
 async function main() {
   if (!process.env.DATABASE_URL) {
     console.error('DATABASE_URL is required for ingestion.');
@@ -196,7 +252,7 @@ async function main() {
     }
 
     console.log(`Ingesting: ${sourceDoc}`);
-    const pages = await extractPdfPages(filePath);
+    const pages = await extractDocumentPages(filePath);
 
 
     //SEMANTIC CHUNKING USING OPENAI: ARGS (max tokens: 512, Threshold 0.72)
