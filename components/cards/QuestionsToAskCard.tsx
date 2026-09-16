@@ -1,17 +1,24 @@
-import CardFrame from '@/components/cards/CardFrame';
+export default function QuestionsToAskCard({
+  questions,
+  onSelect,
+}: {
+  questions: string[];
+  onSelect?: (question: string) => void;
+}) {
+  if (questions.length === 0) return null;
 
-export default function QuestionsToAskCard({ questions }: { questions: string[] }) {
   return (
-    <CardFrame title="Follow up Questions" typeLabel="">
-      {questions.length > 0 ? (
-        <ul className="list-disc pl-5">
-          {questions.map((question) => (
-            <li key={question}>{question}</li>
-          ))}
-        </ul>
-      ) : (
-        <p>No questions generated yet.</p>
-      )}
-    </CardFrame>
+    <div className="flex flex-wrap gap-2">
+      {questions.map((question) => (
+        <button
+          key={question}
+          type="button"
+          onClick={() => onSelect?.(question)}
+          className="rounded-full border border-uwred/25 bg-uwred/[0.03] px-3 py-1.5 text-left text-xs font-semibold text-darkgray transition hover:border-uwred hover:bg-uwred hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-uwred focus-visible:ring-offset-2"
+        >
+          {question}
+        </button>
+      ))}
+    </div>
   );
 }

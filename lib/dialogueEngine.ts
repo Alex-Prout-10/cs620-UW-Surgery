@@ -15,8 +15,8 @@ const ANSWER_MODEL = process.env.OPENAI_MODEL ?? "gpt-4.1";
 const RECENT_CONVERSATION_LIMIT = 6;
 // Keep enough context to compare guidance across several documents, while
 // preventing a single document from taking over the answer context.
-const ANSWER_RETRIEVAL_LIMIT = 15;
-const ANSWER_RETRIEVAL_MAX_PER_SOURCE = 5;
+const ANSWER_RETRIEVAL_LIMIT = 12;
+const ANSWER_RETRIEVAL_MAX_PER_SOURCE = 3;
 
 // We only have one card type left!
 const CARD_TITLES: Record<(typeof CardTypeEnum.options)[number], string> = {
@@ -62,6 +62,39 @@ function trimQuote(quote: string, maxWords = 25) {
   const words = quote.trim().split(/\s+/);
   if (words.length <= maxWords) return quote.trim();
   return `${words.slice(0, maxWords).join(" ")}…`;
+}
+
+function normalizeForComparison(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hasEnoughSourceOverlap(quote: string, chunkText: string) {
+  const normalizedQuote = normalizeForComparison(quote);
+  if (normalizedQuote.split(" ").filter(Boolean).length < 5) return false;
+  return normalizeForComparison(chunkText).includes(normalizedQuote);
+}
+
+function removeEmbeddedFollowUpQuestions(text: string) {
+  const questionStart = /(?:\*{1,3}\s*)?(?:how|what|when|where|why|will|should|can|do|does|is|are)\b[^?]{0,220}\?/gi;
+  const firstQuestion = [...text.matchAll(questionStart)].find(
+    (match) => (match.index ?? 0) > 80,
+  );
+  return firstQuestion?.index === undefined
+    ? text
+    : text.slice(0, firstQuestion.index).trim();
+}
+
+function cleanResponseOverview(overview: string) {
+  return removeEmbeddedFollowUpQuestions(overview)
+    .replace(/^\s*(?:#{1,6}\s*)?(?:key details|questions?(?: you (?:might|can) ask)?|sources?)\s*:?.*$/gim, "")
+    .replace(/\*{1,3}/g, "")
+    .replace(/^[\s-]+/gm, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 function buildCitations(chunks: RetrievalChunk[]) {
@@ -385,16 +418,17 @@ POLICIES:
 - Do not recommend adrenal biopsy; explain that biopsy is not a first step and requires hormone testing first.
 - If severe symptoms appear, advise urgent evaluation or emergency services.
 - Cite clinical claims using ONLY the provided chunks and their citation_key values.
+- Every citation must include quote: an exact, continuous 5-to-25-word excerpt from that same provided chunk which supports a factual claim in your answer. Do not cite a source if you cannot supply that exact supporting excerpt.
+- For a multi-topic answer, do not let one citation imply support for the entire answer. Each distinct clinical topic (for example testing, imaging, monitoring, or surgery) needs its own supporting citation, or must be omitted or identified as not covered by the available sources.
 - If information is not in the chunks, label it as general guidance and do not cite.
 - Treat the provided knowledge chunks as the source of truth. When a chunk gives specific instructions that answer the user's question, summarize those instructions faithfully. Do not replace them with broader, generic advice.
 - When retrieved material includes a UW clinic workflow or patient instruction guide, use it to tailor operational details such as timing, test preparation, and appointment logistics. Use broader clinical guidelines alongside it to explain why a test is used. If sources conflict, prioritize the clinic's current instruction guide for operational details.
 - When explaining a test, first say in plain language what the patient does and what the test checks. Then give the preparation steps. Do not use a test name alone as the explanation.
-- Give a complete but focused explanation; aim for assistant_message between 700 and 1,400 characters when the supplied sources support that level of detail.
+- Give a complete but focused explanation. Aim for a 2-to-4 sentence response_overview, usually 300 to 700 characters. Do not add generic appointment, referral, record-gathering, or symptom-tracking advice unless it is supported by a provided chunk.
 - Do NOT include citation keys, citation markers, Markdown footnotes, or disclaimer text inside assistant_message. Put supported sources only in citations[].
-- response_overview must be a three- to four-sentence plain-language answer that directly answers the question, explains why the information matters, and sets expectations for the patient. Use complete, patient-facing sentences rather than a terse summary. Do not diagnose or predict an individual's result.
+- response_overview must be a two- to four-sentence plain-language answer that directly answers the question. Use complete, patient-facing sentences rather than a terse summary. Do not diagnose or predict an individual's result. Do not include questions, suggested next questions, headings, Markdown, bullets, or a “Key details” label in this field.
 - When describing testing or preparation that may not apply to every patient, use clinician-guided wording such as "your doctor may recommend" or "if your care team orders this test." Do not state that a patient needs a specific test unless the user has said it was ordered for them.
-- Use response_details only when there are at least two distinct steps, facts, or practical expectations that are clearer as a list. Otherwise, return an empty array and give the complete answer in response_overview. When used, include 2 to 6 plain-text items from the provided knowledge. Each item must be a complete, patient-facing sentence with exactly one clear point and be no more than 220 characters. Split separate instructions into separate items. Every item must add information not already stated in response_overview; do not rephrase the overview as a bullet.
-- When preparation or follow-up details can vary by clinic or medication, use one response_details item to tell the patient to follow the specific instructions from their doctor or clinic.
+- Return an empty response_details array. The patient interface intentionally presents one clear answer instead of a repeated “Key details” section.
 - assistant_message must contain the same plain-language overview as response_overview, without Markdown.
 
 CONVERSATION CONTINUITY:
@@ -434,7 +468,10 @@ Return ONLY JSON matching the schema. The interface applies Markdown formatting 
         schema: AssistantTurnJsonSchema.schema,
       },
     },
-    max_output_tokens: 1200,
+    // Multi-part patient questions may require several distinct, grounded
+    // sections plus citations and follow-up questions. The prompt still
+    // constrains concise answers; this ceiling prevents premature truncation.
+    max_output_tokens: 3000,
   });
 
   const outputText = getOutputText(response);
@@ -448,14 +485,18 @@ Return ONLY JSON matching the schema. The interface applies Markdown formatting 
     });
   }
 
-  const allowedCitations = new Set(
-    retrieval.chunks.map((chunk) => chunk.citation_key),
+  const chunksByCitationKey = new Map(
+    retrieval.chunks.map((chunk) => [chunk.citation_key, chunk]),
   );
+  const allowedCitations = new Set(chunksByCitationKey.keys());
   const sanitizedCitations = parsed.citations
-    .filter((item) => allowedCitations.has(item.citation_key))
+    .filter((item) => {
+      const chunk = chunksByCitationKey.get(item.citation_key);
+      return !!chunk && !!item.quote && hasEnoughSourceOverlap(item.quote, chunk.text_snippet);
+    })
     .map((item) => ({
       citation_key: item.citation_key,
-      quote: item.quote ? trimQuote(item.quote) : null,
+      quote: trimQuote(item.quote!),
     }));
 
   const formattedAssistantMessage = formatStructuredAssistantMessage(
@@ -475,12 +516,13 @@ Return ONLY JSON matching the schema. The interface applies Markdown formatting 
       ? sanitizedCitations
       : inlineCitations.length > 0
         ? inlineCitations
-        : buildCitations(retrieval.chunks);
+        : [];
 
   // Removed disclaimer from the final returned object
   return {
     ...parsed,
     assistant_message: normalized.message || parsed.assistant_message,
+    response_details: [],
     citations: uniqueCitationsByDocument(mergedCitations),
   };
 }
@@ -532,28 +574,12 @@ function formatConversationContext(messages: ConversationMessage[]) {
 }
 
 function formatStructuredAssistantMessage(overview: string, details: string[]) {
-  const overviewParts = overview
-    .split(/\s+-\s+/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-  const cleanOverview = (overviewParts.shift() ?? "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-  const cleanDetails = [...overviewParts, ...details]
-    .map((detail) =>
-      detail
-        .replace(/^\s*(?:[-*]|\d+\.)\s*/, "")
-        .replace(/\s+/g, " ")
-        .trim(),
-    )
-    .filter(Boolean)
-    .slice(0, 6);
-  const detailSection = cleanDetails.length > 0
-    ? `### Key details\n\n${cleanDetails.map((detail) => `- ${detail}`).join('\n')}`
-    : "";
-  return [cleanOverview, detailSection]
-    .filter(Boolean)
-    .join('\n\n');
+  const cleanOverview = cleanResponseOverview(overview);
+  // Keep the response as one readable answer. The model still returns a
+  // structured details field for schema compatibility, but it is deliberately
+  // not displayed while we evaluate a better multi-part response design.
+  void details;
+  return cleanOverview;
 }
 
 function uniqueCitationsByDocument<T extends { citation_key: string }>(citations: T[]) {

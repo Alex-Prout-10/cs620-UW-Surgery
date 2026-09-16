@@ -24,23 +24,28 @@ const DEFAULT_FILES = [
   'Primary Aldosteronism- An Endocrine Society Clinical Practice Guideline.pdf',
   'primary-aldosteronism Family Medicine Clinical Guidelines.pdf',
   'Emergency_Severity_Index_Handbook.pdf',
-  // UpToDate Articles
-  'Adrenal hyperandrogenism - UpToDate.pdf',
-  'Causes of primary adrenal insufficiency (Addison disease) - UpToDate.pdf',
+  'Adrenal hyperandrogenism.pdf',
+  'Causes of primary adrenal insufficiency (Addison disease).pdf',
   'Comorbidities in mild autonomous cortisol secretion and the effect of treatment.pdf',
-  'Cushing syndrome due to primary bilateral macronodular adrenal hyperplasia - UpToDate.pdf',
-  'Determining the etiology of adrenal insufficiency in adults - UpToDate.pdf',
-  'Diagnosis of primary aldosteronism - UpToDate.pdf',
-  'Epidemiology and clinical manifestations of Cushing syndrome - UpToDate.pdf',
-  'Establishing the diagnosis of Cushing syndrome - UpToDate.pdf',
+  'Cushing syndrome due to primary bilateral macronodular adrenal hyperplasia.pdf',
+  'Determining the etiology of adrenal insufficiency in adults.pdf',
+  'Diagnosis of primary aldosteronism.pdf',
+  'Epidemiology and clinical manifestations of Cushing syndrome.pdf',
+  'Establishing the diagnosis of Cushing syndrome.pdf',
   'European Society of Endocrinology clinical practice.pdf',
-  'Evaluation and management of the adrenal incidentaloma - UpToDate.pdf',
+  'Evaluation and management of the adrenal incidentaloma.pdf',
   'Mild autonomous cortisol secretion pathophysiology, comorbidities and management approaches.pdf',
   'NEJM pheochromocytoma and paraganglioma.pdf',
-  'Overview of the treatment of Cushing syndrome - UpToDate.pdf',
+  'Overview of the treatment of Cushing syndrome.pdf',
   'Perioperative Management of Pheochromocytoma.pdf',
-  'Surgical anatomy of the adrenal glands - UpToDate.pdf',
-  'THE EVALUATION OF INCIDENTALLY DISCOVERED ADRENAL MASSES.pdf'
+  'Surgical anatomy of the adrenal glands.pdf',
+  'THE EVALUATION OF INCIDENTALLY DISCOVERED ADRENAL MASSES.pdf',
+  'adrenalectomy-for-secondary-malignancy-patients-outcomes-and.pdf',
+  'pheochromocytoma-presentation-diagnosis-and-treatment.pdf',
+  'Clinical Outcomes After Unilateral Adrenalectomy.pdf',
+  'byrd-et-al-2018-primary-aldosteronism.pdf',
+  'PRA pain outcomes.pdf',
+  'PRA.pdf'
 
 ].map((name) => path.resolve(process.cwd(), 'Reference documents', name));
 
@@ -282,8 +287,7 @@ async function main() {
         })
       : await chunkPagesSemantic(pages, openai, {
           embeddingModel: EMBEDDING_MODEL,
-          maxChunkChars: args.maxTokens ? args.maxTokens * 4 : 2800,
-          relevanceThreshold: 0.72,
+          maxChunkChars: args.maxTokens ? args.maxTokens * 4 : 2200,
         });
     console.log(`  ${chunks.length} chunks (${isDocx ? 'token-based' : 'semantic'})`);
 
@@ -327,8 +331,10 @@ async function main() {
               });
               const vector = embeddingResponse.data?.[0]?.embedding;
               if (vector) {
-                await prisma.knowledgeEmbedding.create({
-                  data: {
+                await prisma.knowledgeEmbedding.upsert({
+                  where: { chunkId: existing.id },
+                  update: {},
+                  create: {
                     chunkId: existing.id,
                     model: EMBEDDING_MODEL,
                     vector
@@ -361,8 +367,12 @@ async function main() {
 
       const leadSentence = extractLeadSentence(chunk.text);
 
-      const created = await prisma.knowledgeChunk.create({
-        data: {
+      // The unique hash makes ingestion repeatable. Upsert also protects
+      // against a second ingestion process reaching this chunk concurrently.
+      const created = await prisma.knowledgeChunk.upsert({
+        where: { hash: chunk.hash },
+        update: {},
+        create: {
           id: chunkId,
           sourceDoc,
           sourcePageStart: chunk.pageStart,
@@ -374,7 +384,11 @@ async function main() {
           citationKey
         }
       });
-      totalCreated += 1;
+      if (created.id === chunkId) {
+        totalCreated += 1;
+      } else {
+        totalSkipped += 1;
+      }
 
       if (openai) {
         try {
@@ -384,8 +398,10 @@ async function main() {
           });
           const vector = embeddingResponse.data?.[0]?.embedding;
           if (vector) {
-            await prisma.knowledgeEmbedding.create({
-              data: {
+            await prisma.knowledgeEmbedding.upsert({
+              where: { chunkId: created.id },
+              update: {},
+              create: {
                 chunkId: created.id,
                 model: EMBEDDING_MODEL,
                 vector

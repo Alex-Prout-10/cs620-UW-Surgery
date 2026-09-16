@@ -21,18 +21,17 @@ export default function HomePage() {
         </video>
       </section>
 
-      {/* Care Pathway Section */}
       <section className="card fade-in">
-        <h2 className="font-serif text-xl text-darkgray">Your Usual Care Pathway</h2>
+        <h2 className="font-serif text-xl text-darkgray">Lab Testing Resources</h2>
         <p className="mt-1 text-sm text-muted">
-          Here is what typically happens after an adrenal nodule is found. Your care team will guide you through each step.
+          Here is how to prepare if your care team has ordered morning adrenal hormone testing.
         </p>
         <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { step: '1', title: 'Nodule Found', desc: 'An adrenal nodule is discovered on imaging done for another reason. Your doctor reviews the scan.' },
-            { step: '2', title: 'Hormone Testing', desc: 'Blood and sometimes urine tests check whether the nodule is making extra hormones. Your doctor orders these.' },
-            { step: '3', title: 'Results Review', desc: 'Your care team reviews test results and imaging to determine if the nodule needs further action or monitoring.' },
-            { step: '4', title: 'Next Steps', desc: 'Based on results, you may be monitored with follow-up imaging, referred to a specialist, or reassured that no further action is needed.' }
+            { step: '1', title: 'Prepare for the test', desc: 'Schedule a blood draw for 8am at your nearest blood draw facility. Pick up the medication dexamethasone, which will be prescribed for you.' },
+            { step: '2', title: 'The night before', desc: 'Take the dexamethasone at 11pm the night before your blood draw. You can take your other medications as normal.' },
+            { step: '3', title: 'Day of the tests', desc: 'Arrive before 8am to get your blood drawn right at 8am. It is okay to eat breakfast, although avoid coffee if you can.' },
+            { step: '4', title: 'After the tests', desc: 'A provider will reach out to discuss results. If they are abnormal, they will arrange a visit with a surgeon to discuss treatment. If they are normal, they can discuss what follow-up, if any, is recommended.' }
           ].map((item) => (
             <li key={item.step} className="flex gap-3 rounded-xl border border-accent/60 bg-white/70 p-3">
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-uwred text-xs font-bold text-white">{item.step}</span>
@@ -43,50 +42,6 @@ export default function HomePage() {
             </li>
           ))}
         </ol>
-      </section>
-
-      <section className="card fade-in">
-        <h2 className="font-serif text-xl text-darkgray">Lab Testing Resources</h2>
-        <p className="mt-1 text-sm text-muted">
-          Review this guide to understand the lab tests that may be part of your adrenal nodule evaluation.
-        </p>
-        <div className="relative mt-4 overflow-hidden rounded-xl border border-accent/60 bg-white">
-          <iframe
-            src="/pdfjs-viewer.html?file=%2Fadrenal-lab-testing-guide.pdf&scale=0.58"
-            title="Lab Testing Guide preview"
-            className="pointer-events-none h-[500px] w-full border-0"
-          />
-          <a
-            href="/adrenal-lab-testing-guide.pdf"
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Open the Lab Testing Guide PDF in full size"
-            className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/25 via-transparent to-transparent p-5"
-          >
-            <span className="rounded-full bg-white/95 px-5 py-2 text-sm font-semibold text-uwred shadow-md transition hover:bg-uwred hover:text-white">
-              Open full-size lab testing guide
-            </span>
-          </a>
-        </div>
-        <div className="mt-4">
-          <a
-            href="/adrenal-lab-testing-guide.docx"
-            download
-            className="group flex items-center gap-3 rounded-xl border border-accent/60 bg-white/70 p-4 transition hover:border-uwred/50 hover:shadow-sm"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-uwred/10 text-sm font-bold text-uwred">
-              DOCX
-            </span>
-            <span>
-              <span className="block text-sm font-semibold text-darkgray group-hover:text-uwred">
-                Lab Testing Guide
-              </span>
-              <span className="mt-0.5 block text-xs text-muted">
-                Download the Word document
-              </span>
-            </span>
-          </a>
-        </div>
       </section>
 
       {/* Button to the Chat Page */}

@@ -6,7 +6,7 @@ import type { AssistantTurn } from "@/lib/schemas";
 import CardRenderer from "@/components/cards/CardRenderer";
 import CitationList from "@/components/CitationList";
 import PipelineTraceCard from "@/components/cards/PipelineTraceCard";
-import { DRAFT_COMMON_QUESTIONS } from "@/lib/commonQuestions";
+import { COMMON_QUESTIONS } from "@/lib/commonQuestions";
 
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
@@ -46,6 +46,30 @@ type ChatMessage = {
   pipeline_trace?: any;
   responseTimeMs?: number;
 };
+
+function markdownToSpeechText(markdown: string) {
+  return markdown
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/^\s*(?:[-+*]|\d+[.)])\s+/gm, "")
+    .replace(/[*_~`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function preferredEnglishVoice() {
+  const voices = window.speechSynthesis
+    .getVoices()
+    .filter((voice) => /^en-US/i.test(voice.lang));
+  const naturalVoice = voices.find((voice) =>
+    /(natural|online|aria|ava|jenny|samantha|zira|google us english)/i.test(
+      voice.name,
+    ),
+  );
+  return naturalVoice ?? voices[0] ?? null;
+}
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -331,8 +355,14 @@ export default function ChatPage() {
     }
 
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const speechText = markdownToSpeechText(text);
+    if (!speechText) return;
+
+    const utterance = new SpeechSynthesisUtterance(speechText);
     utterance.lang = "en-US";
+    utterance.voice = preferredEnglishVoice();
+    utterance.rate = 0.96;
+    utterance.pitch = 1;
     utterance.onend = () => setSpeakingMessageId(null);
     utterance.onerror = () => setSpeakingMessageId(null);
     window.speechSynthesis.speak(utterance);
@@ -374,11 +404,16 @@ export default function ChatPage() {
             </h1>
           </div>
 
-          {/* Guidance Banner (Full Width, Larger & Softer Dark Gray Text) */}
-          <div className="w-full rounded-2xl bg-gray-50/80 p-5 text-base text-gray-700 border border-uwred/30 shadow-sm">
-            <p className="font-semibold text-uwred text-lg mb-2">Guide:</p>
-            <p className="leading-relaxed">
-              Ask questions specifically about{" "}
+          <div className="w-full rounded-2xl border border-uwred/20 bg-gradient-to-br from-uwred/[0.08] via-white to-white p-5 text-darkgray shadow-sm">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-uwred font-serif text-lg text-white shadow-sm">i</span>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-uwred">How to use this guide</p>
+                <h2 className="mt-0.5 font-serif text-xl text-darkgray">Clear answers for your next steps</h2>
+              </div>
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-muted">
+              To get a useful answer, ask about{" "}
               <strong className="font-semibold text-gray-900">
                 adrenal nodules
               </strong>
@@ -395,6 +430,11 @@ export default function ChatPage() {
               unrelated medical questions, or replace advice from your care
               team.
             </p>
+            <ol className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
+              <li className="rounded-lg border border-uwred/10 bg-white/80 px-3 py-2 text-muted"><span className="mr-2 font-serif text-uwred">1.</span>Ask a specific question</li>
+              <li className="rounded-lg border border-uwred/10 bg-white/80 px-3 py-2 text-muted"><span className="mr-2 font-serif text-uwred">2.</span>Use follow-up questions</li>
+              <li className="rounded-lg border border-uwred/10 bg-white/80 px-3 py-2 text-muted"><span className="mr-2 font-serif text-uwred">3.</span>Open sources to learn more</li>
+            </ol>
           </div>
 
           {/* Compact, Centered Reset / New Chat Button Below Banner */}
@@ -420,20 +460,33 @@ export default function ChatPage() {
       </section>
 
       {messages.length === 0 && (
-        <section className="flex flex-wrap justify-center gap-2 -mt-2">
-          <p className="w-full text-center text-sm text-muted">
-            Common questions (draft)
-          </p>
-          {DRAFT_COMMON_QUESTIONS.map((question) => (
-            <button
-              key={question.id}
-              type="button"
-              onClick={() => handleQuickReply(question.prompt)}
-              className="rounded-full border border-uwred/40 bg-white/80 px-4 py-2 text-sm text-uwred transition hover:border-uwred hover:bg-uwred/5"
-            >
-              {question.label}
-            </button>
-          ))}
+        <section
+          aria-labelledby="common-questions-heading"
+          className="-mt-2 rounded-2xl border border-accent/70 bg-white px-5 py-4 shadow-sm"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="common-questions-heading" className="font-serif text-lg text-darkgray">
+              Common questions
+            </h2>
+            <p className="text-xs text-muted">
+              Select one to add it to your chat.
+            </p>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {COMMON_QUESTIONS.map((question) => (
+              <button
+                key={question.id}
+                type="button"
+                onClick={() => handleQuickReply(question.prompt)}
+                className="rounded-full border border-uwred/25 bg-uwred/[0.03] px-3 py-1.5 text-sm font-semibold text-darkgray transition hover:border-uwred hover:bg-uwred hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-uwred focus-visible:ring-offset-2"
+              >
+                {question.label}
+                {/*
+                  →
+                */}
+              </button>
+            ))}
+          </div>
         </section>
       )}
 
@@ -636,6 +689,7 @@ export default function ChatPage() {
                     <CardRenderer
                       key={`${card.type}-${index}`}
                       card={card}
+                      onQuickReply={handleQuickReply}
                       selectedSymptoms={
                         Array.isArray(clientState?.selectedSymptoms)
                           ? (clientState.selectedSymptoms as string[])

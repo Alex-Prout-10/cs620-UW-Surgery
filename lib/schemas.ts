@@ -23,7 +23,7 @@ export const UiCardSchema = z.object({
 export const AssistantTurnSchema = z.object({
   mode: ModeEnum,
   assistant_message: z.string(),
-  response_overview: z.string().max(650),
+  response_overview: z.string().max(900),
   response_details: z.array(z.string().max(220)).max(6),
   citations: z.array(
     z.object({
@@ -65,7 +65,7 @@ export const AssistantTurnJsonSchema = {
     properties: {
       mode: { type: 'string', enum: ModeEnum.options },
       assistant_message: { type: 'string' },
-      response_overview: { type: 'string', maxLength: 650 },
+      response_overview: { type: 'string', maxLength: 900 },
       response_details: {
         type: 'array',
         maxItems: 6,

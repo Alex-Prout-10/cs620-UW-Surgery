@@ -14,7 +14,7 @@
     "ingest": "tsx scripts/ingest.ts",
     "demo": "tsx scripts/demo.ts",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev --name init",
+    "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {

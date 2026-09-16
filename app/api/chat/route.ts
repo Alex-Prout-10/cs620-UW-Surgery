@@ -4,6 +4,7 @@ import { runAgentPipeline } from '@/lib/agents/pipeline';
 import type { PipelineTrace } from '@/lib/agents/schemas';
 import { prisma } from '@/lib/prisma';
 import { BASE_DISCLAIMERS, stripPromptInjection } from '@/lib/safety';
+import { getCommonQuestionAnswer } from '@/lib/commonQuestions';
 
 export const runtime = 'nodejs';
 
@@ -94,6 +95,20 @@ async function saveChatTurn(
   });
 }
 
+function buildApprovedAnswer(answer: string) {
+  return {
+    mode: 'faq' as const,
+    assistant_message: answer,
+    response_overview: answer,
+    response_details: [],
+    citations: [],
+    ui_cards: [],
+    suggested_actions: [],
+    triage_level: 'none' as const,
+    pipeline_trace: null
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -107,6 +122,15 @@ export async function POST(request: NextRequest) {
     const sanitizedMessage = cleanedMessage || userMessage.trim();
     const requestedSessionId = typeof body?.session_id === 'string' ? body.session_id : null;
     const sessionId = requestedSessionId || request.cookies.get('session_id')?.value || crypto.randomUUID();
+
+    // Use the clinician-approved wording for the homepage's common questions.
+    // This avoids unnecessary model calls and keeps the answer stable.
+    const approvedQuestion = getCommonQuestionAnswer(sanitizedMessage);
+    if (approvedQuestion) {
+      const response = buildApprovedAnswer(approvedQuestion.answer);
+      await saveChatTurn(sessionId, sanitizedMessage, response);
+      return jsonWithSession(response, sessionId);
+    }
 
     if (injectionScan.isLikely && !cleanedMessage) {
       const response = {

@@ -190,7 +190,7 @@ export async function retrieveRelevantChunks(
         include: { chunk: true }
       });
 
-      const scored = embeddings
+      const semanticScores = embeddings
         .map((embedding) => ({
           chunk: {
             id: embedding.chunk.id,
@@ -205,7 +205,22 @@ export async function retrieveRelevantChunks(
             createdAt: embedding.chunk.createdAt.toISOString(),
             updatedAt: embedding.chunk.updatedAt.toISOString()
           },
-          score: cosineSimilarity(queryEmbedding, embedding.vector)
+          semanticScore: cosineSimilarity(queryEmbedding, embedding.vector)
+        }));
+      const maxSemanticScore = Math.max(...semanticScores.map((item) => item.semanticScore));
+      const minSemanticScore = Math.min(...semanticScores.map((item) => item.semanticScore));
+      const semanticRange = Math.max(maxSemanticScore - minSemanticScore, 0.000001);
+      const keywordScores = semanticScores.map((item) => scoreChunkKeyword(query, item.chunk.text));
+      const maxKeywordScore = Math.max(...keywordScores, 1);
+
+      const scored = semanticScores
+        .map((item, index) => ({
+          ...item,
+          // Semantic similarity is primary. Exact terms such as a test name,
+          // procedure, or imaging feature receive a modest relevance boost.
+          score:
+            0.82 * ((item.semanticScore - minSemanticScore) / semanticRange) +
+            0.18 * (keywordScores[index] / maxKeywordScore)
         }))
         .sort((a, b) => {
           if (b.score !== a.score) return b.score - a.score;

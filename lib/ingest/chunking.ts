@@ -197,8 +197,9 @@ export function dedupeChunksByHash(chunks: ChunkResult[]) {
 /*  a new chunk starts. Uses OpenAI directly (no LangChain).           */
 /* ------------------------------------------------------------------ */
 
-const SEGMENT_TARGET_CHARS = 200;
-const SEGMENT_MIN_CHARS = 60;
+const SEGMENT_TARGET_CHARS = 300;
+const SEGMENT_MIN_CHARS = 120;
+const MIN_SEMANTIC_CHUNK_CHARS = 800;
 const MAX_CHUNK_CHARS = 1800;
 const RELEVANCE_THRESHOLD = 0.3;
 const EMBEDDING_BATCH_SIZE = 100;
@@ -338,10 +339,13 @@ export async function chunkPagesSemantic(
 ): Promise<ChunkResult[]> {
   const model = options.embeddingModel ?? 'text-embedding-3-small';
   const maxChars = options.maxChunkChars ?? MAX_CHUNK_CHARS;
-  const relevanceThresh = options.relevanceThreshold ?? RELEVANCE_THRESHOLD;
+  // Keep all clinically meaningful segments. A document-wide relevance filter
+  // can remove specific risk or follow-up passages that differ from the rest
+  // of the article.
+  const relevanceThresh = -1;
 
-  // Step 1: Build small segments from pages
-  const segments = buildSegments(pages);
+  // Step 1: Build small segments from pages, excluding references sections.
+  const segments = buildSegments(stripReferenceSections(pages));
 
   if (segments.length <= 1) {
     const text = normalizeText(segments[0]?.text ?? '');
@@ -417,7 +421,10 @@ export async function chunkPagesSemantic(
 
   for (let i = 0; i < similarities.length; i++) {
     const nextSeg = filtered[i + 1].segment;
-    if (similarities[i] < threshold || currentLen + nextSeg.text.length > maxChars) {
+    if (
+      (similarities[i] < threshold && currentLen >= MIN_SEMANTIC_CHUNK_CHARS) ||
+      currentLen + nextSeg.text.length > maxChars
+    ) {
       chunkGroups.push(currentGroup);
       currentGroup = [];
       currentLen = 0;
@@ -431,7 +438,7 @@ export async function chunkPagesSemantic(
   const chunks: ChunkResult[] = [];
   for (const group of chunkGroups) {
     const text = normalizeText(group.map((s) => s.text).join('\n\n'));
-    if (!text) continue;
+    if (!text || isReferenceChunk(text)) continue;
 
     const allPages = group.flatMap((s) => s.pages);
     const pageStart = allPages.length > 0 ? Math.min(...allPages) : null;
