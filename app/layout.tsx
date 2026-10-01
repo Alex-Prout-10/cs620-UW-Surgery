@@ -50,10 +50,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       
           <footer className="mt-1 pt-1 pb-3 max-w-2xl mx-auto text-center font-normal">
             {" "}
-            <div className="text-[12px] text-slate-600 Stracking-wide uppercase font-bold mb-1.5">
+            <div className="text-xs text-slate-600 Stracking-wide uppercase font-bold mb-1.5">
               Medical Disclaimer
             </div>
-            <div className="flex flex-col gap-1 text-[11px] leading-normal text-slate-500 font-normal">
+            <div className="flex flex-col gap-1 text-[0.6875rem] leading-normal text-slate-500 font-normal">
               <p>
                 This tool provides general education and navigation support.
               </p>

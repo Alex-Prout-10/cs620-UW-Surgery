@@ -31,34 +31,79 @@ body {
 }
 
 html.large-text {
-  font-size: 18px;
+  font-size: 20px;
 }
 
 html.high-contrast body {
   background: #ffffff;
+  background-image: none;
   color: #000000;
 }
 
-html.high-contrast .card {
+html.high-contrast body :where(*) {
+  color: #000000;
+  border-color: #000000;
+}
+
+html.high-contrast .card,
+html.high-contrast .chat-experience,
+html.high-contrast body article,
+html.high-contrast body details,
+html.high-contrast body [role="region"],
+html.high-contrast body [class*="bg-gradient-to-"] {
   background: #ffffff;
+  background-image: none;
   border-color: #000000;
   box-shadow: none;
 }
 
-html.high-contrast .chat-experience {
+html.high-contrast body :where(input, textarea, select) {
   background: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+}
+
+html.high-contrast body button {
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+}
+
+html.high-contrast body :where(.bg-uwred, .bg-uwdarkred, .badge) {
+  background: #000000;
+  background-image: none;
+  color: #ffffff;
   border-color: #000000;
 }
 
-html.high-contrast a,
-html.high-contrast button {
-  color: #000000;
+html.high-contrast body :where(.bg-uwred, .bg-uwdarkred, .badge) :where(*) {
+  color: #ffffff;
 }
 
-html.high-contrast .badge {
+html.high-contrast body a {
+  color: #000000;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+html.high-contrast body a.bg-uwred,
+html.high-contrast body a.bg-uwdarkred,
+html.high-contrast body button.bg-uwred,
+html.high-contrast body button.bg-uwdarkred,
+html.high-contrast body :where(.bg-uwred, .bg-uwdarkred) a {
   background: #000000;
   color: #ffffff;
   border-color: #000000;
+}
+
+html.high-contrast body button:disabled {
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+html.high-contrast body :focus-visible {
+  outline: 3px solid #000000;
+  outline-offset: 3px;
 }
 
 @media print {

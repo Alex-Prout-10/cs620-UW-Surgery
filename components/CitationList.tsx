@@ -15,7 +15,7 @@ export default function CitationList({ citations, leadSentences }: CitationListP
       <summary className="cursor-pointer list-none text-xs font-semibold text-darkgray marker:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-uwred focus-visible:ring-offset-2">
         <span className="inline-flex items-center gap-2">
           Sources
-          <span className="rounded-full bg-uwred/[0.08] px-1.5 py-0.5 text-[10px] font-bold text-uwred">{databaseCitations.length}</span>
+          <span className="rounded-full bg-uwred/[0.08] px-1.5 py-0.5 text-[0.625rem] font-bold text-uwred">{databaseCitations.length}</span>
           <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-180">⌄</span>
         </span>
       </summary>

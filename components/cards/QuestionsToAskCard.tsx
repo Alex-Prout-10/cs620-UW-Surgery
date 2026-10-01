@@ -16,7 +16,7 @@ export default function QuestionsToAskCard({
         <h3 className="text-sm font-semibold text-darkgray">
           Follow-up questions
         </h3>
-        <span className="text-[11px] text-muted">Scroll to browse</span>
+        <span className="text-[0.6875rem] text-muted">Scroll to browse</span>
       </div>
       <div
         aria-label="Browse follow-up questions"
