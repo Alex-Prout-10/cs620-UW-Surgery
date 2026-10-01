@@ -99,25 +99,21 @@ Test a few broad and detailed clinical questions. If answers lose useful detail 
 
 ## 4. Draft common questions
 
-The chat screen now shows four draft common-question prompts based on existing test questions. Selecting one only fills the chat input; it does not provide a hardcoded clinical answer or make an additional API request.
+The chat screen now shows eleven common-question prompts. Selecting one sends it directly, and exact matches return a prepared answer without a model call. The API records both the selected question and answer for conversation follow-up when database storage is available.
 
-Until endocrinologist-reviewed questions and answers are available, these prompts continue through the normal safety and source-retrieval pipeline. This avoids publishing unreviewed medical content.
+Six new answer drafts cover what an adrenal nodule means, cancer concern, hormone production, surgery, why tests are ordered, and who to contact. Their topics draw on a clinical FAQ review, patient-reported adrenal incidentaloma research, and a nurse-led clinic evaluation. The clinic evaluation interviewed ten patients and found that patients were less certain about whom to contact with further questions. These studies help select topics; they do not establish that these are the most frequent patient questions. UW clinician review is still needed before patient release.
 
-When reviewed answers are available, the next step is to store each approved answer with its citations and source version in Neon. Exact common-question matches can then return the approved cached answer without calling the model, while all other questions keep the current full pipeline.
+Prepared answers currently do not include source chips. The source references for question selection are Ceccato et al. (2021), doi:10.1007/s40618-021-01615-3; Mewes et al., Endocrine Abstracts 2023, 94:EA0094P304; and Muth et al. (2013), doi:10.1007/s12020-012-9856-z.
 
-## 5. Remaining chat latency
+## 5. Chat intro and background
 
-The application still preserves its existing multi-step safety architecture. A typical live request can include:
+The chat page has a soft red-and-neutral gradient across the chat area. Its introduction explains that the chatbot is curated and endorsed by the UW Adrenal team, uses selected UW Health patient resources and clinical guidelines, and is designed for adrenal nodule education rather than open-ended web search.
 
-1. Gatekeeper and analyzer model calls in parallel.
-2. Scope-validator model call.
-3. Retrieval work, including embeddings when configured.
-4. Router model call.
-5. Final structured-answer model call.
+## 6. Current chat request path
 
-The recent-history lookup is parallelized, but the multi-model agent pipeline remains the main source of latency. A later, separate optimization could merge the three safety/routing agent calls into one structured decision call. That should be reviewed carefully because it changes safety behavior, not just speed.
+An ordinary in-scope live request uses one combined safety/scope router call, retrieval (including an embedding request when configured), and one answer-model call. Directly detected self-harm statements return crisis resources before model calls. Out-of-scope and emergency routes return prepared responses without the RAG answer call. If the router is unavailable, the request fails closed.
 
-## 6. Session-ID privacy assessment
+## 7. Session-ID privacy assessment
 
 ### Are these IDs anonymous?
 

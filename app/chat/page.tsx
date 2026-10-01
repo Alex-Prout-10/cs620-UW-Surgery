@@ -86,6 +86,7 @@ export default function ChatPage() {
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const latestResponseRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<ReturnType<typeof createRecognition> | null>(
     null,
   );
@@ -197,12 +198,13 @@ export default function ChatPage() {
     }
   }, [messages, loading]);
 
-  const handleSend = async () => {
-    if (!input.trim() || loading) return;
+  const handleSend = async (messageOverride?: string) => {
+    const messageText = (messageOverride ?? input).trim();
+    if (!messageText || loading) return;
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
-      content: input.trim(),
+      content: messageText,
     };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
@@ -262,6 +264,11 @@ export default function ChatPage() {
 
   const handleQuickReply = (value: string) => {
     setInput(value);
+    window.requestAnimationFrame(() => {
+      const inputElement = inputRef.current;
+      inputElement?.focus({ preventScroll: true });
+      inputElement?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   };
 
   const handleNavigate = (href: string) => {
@@ -393,7 +400,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="grid gap-6">
+    <div className="chat-experience grid gap-6">
       {/* Ask Your Questions header */}
       <section id="chat" className="card fade-in scroll-mt-24">
         <div className="flex flex-col gap-4">
@@ -408,10 +415,12 @@ export default function ChatPage() {
             <div className="flex items-center gap-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-uwred font-serif text-lg text-white shadow-sm">i</span>
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-uwred">How to use this guide</p>
-                <h2 className="mt-0.5 font-serif text-xl text-darkgray">Clear answers for your next steps</h2>
+                <p className="text-sm font-bold uppercase tracking-[0.18em] text-uwred">UW Endocrinology Resource</p>
               </div>
             </div>
+            <p className="mt-3 text-sm leading-relaxed text-muted">
+              Curated and endorsed by the UW Adrenal team, this chatbot answers adrenal nodule questions using selected UW Health resources and established clinical guidelines, rather than open-ended internet searches. It provides general education, not a diagnosis or a substitute for your care team. Source material appears below answers when available.
+            </p>
             <p className="mt-3 text-sm leading-relaxed text-muted">
               To get a useful answer, ask about{" "}
               <strong className="font-semibold text-gray-900">
@@ -430,10 +439,36 @@ export default function ChatPage() {
               unrelated medical questions, or replace advice from your care
               team.
             </p>
-            <ol className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
-              <li className="rounded-lg border border-uwred/10 bg-white/80 px-3 py-2 text-muted"><span className="mr-2 font-serif text-uwred">1.</span>Ask a specific question</li>
-              <li className="rounded-lg border border-uwred/10 bg-white/80 px-3 py-2 text-muted"><span className="mr-2 font-serif text-uwred">2.</span>Use follow-up questions</li>
-              <li className="rounded-lg border border-uwred/10 bg-white/80 px-3 py-2 text-muted"><span className="mr-2 font-serif text-uwred">3.</span>Open sources to learn more</li>
+            <ol className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+              {[
+                {
+                  title: "Ask a question",
+                  description: "Ask about adrenal nodules, tests, or follow-up care.",
+                },
+                {
+                  title: "Use follow-up questions",
+                  description: "Continue the conversation when you want more detail.",
+                },
+                {
+                  title: "Open sources",
+                  description: "Review the references shown beneath answers when available.",
+                },
+              ].map((step, index) => (
+                <li
+                  key={step.title}
+                  className="group rounded-2xl border border-uwred/15 bg-gradient-to-br from-white via-white to-rose-50/80 p-3 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-uwred/30 hover:shadow-md"
+                >
+                  <div className="flex items-start gap-3">
+                    <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-uwred/[0.09] font-serif text-xs font-bold text-uwred ring-4 ring-uwred/[0.04]">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <div>
+                      <h3 className="font-serif text-sm text-darkgray">{step.title}</h3>
+                      <p className="mt-1 text-xs leading-relaxed text-muted">{step.description}</p>
+                    </div>
+                  </div>
+                </li>
+              ))}
             </ol>
           </div>
 
@@ -469,16 +504,22 @@ export default function ChatPage() {
               Common questions
             </h2>
             <p className="text-xs text-muted">
-              Select one to add it to your chat.
+              Choose one for a quick answer; scroll sideways to see more.
             </p>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div
+            aria-label="Browse common questions"
+            className="common-questions-scroller mt-3 flex gap-2 overflow-x-auto pb-2"
+            role="region"
+            tabIndex={0}
+          >
             {COMMON_QUESTIONS.map((question) => (
               <button
                 key={question.id}
                 type="button"
                 onClick={() => handleQuickReply(question.prompt)}
-                className="rounded-full border border-uwred/25 bg-uwred/[0.03] px-3 py-1.5 text-sm font-semibold text-darkgray transition hover:border-uwred hover:bg-uwred hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-uwred focus-visible:ring-offset-2"
+                disabled={loading}
+                className="shrink-0 snap-start rounded-full border border-uwred/25 bg-uwred/[0.03] px-3 py-1.5 text-sm font-semibold text-darkgray transition hover:border-uwred hover:bg-uwred hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-uwred focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
               >
                 {question.label}
                 {/*
@@ -684,6 +725,10 @@ export default function ChatPage() {
                   {message.data.triage_level}
                 </div> */}
 
+                {message.data.citations.length > 0 && (
+                  <CitationList citations={message.data.citations} />
+                )}
+
                 <div className="grid gap-3">
                   {message.data.ui_cards.map((card, index) => (
                     <CardRenderer
@@ -738,10 +783,6 @@ export default function ChatPage() {
                   </div>
                 )} */}
 
-                {message.data.citations.length > 0 && (
-                  <CitationList citations={message.data.citations} />
-                )}
-
                 {/* {message.pipeline_trace && (
                   <PipelineTraceCard trace={message.pipeline_trace} />
                 )} */}
@@ -770,6 +811,7 @@ export default function ChatPage() {
         <div className="grid gap-4">
           <div className="relative">
             <textarea
+              ref={inputRef}
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
@@ -835,7 +877,7 @@ export default function ChatPage() {
             </button>
           </div>
           <button
-            onClick={handleSend}
+            onClick={() => handleSend()}
             className="rounded-full bg-uwred px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
             disabled={loading}
           >

@@ -98,7 +98,7 @@ function cleanResponseOverview(overview: string) {
 }
 
 function buildCitations(chunks: RetrievalChunk[]) {
-  return chunks.slice(0, 3).map((chunk) => ({
+  return chunks.slice(0, 2).map((chunk) => ({
     citation_key: chunk.citation_key,
     quote: null as string | null,
   }));
@@ -516,14 +516,17 @@ Return ONLY JSON matching the schema. The interface applies Markdown formatting 
       ? sanitizedCitations
       : inlineCitations.length > 0
         ? inlineCitations
-        : [];
+        // The retrieved chunks were supplied to the answer model as context.
+        // Keep their references visible when the model omits or misformats its
+        // own citations, instead of hiding the Sources control altogether.
+        : buildCitations(retrieval.chunks);
 
   // Removed disclaimer from the final returned object
   return {
     ...parsed,
     assistant_message: normalized.message || parsed.assistant_message,
     response_details: [],
-    citations: uniqueCitationsByDocument(mergedCitations),
+    citations: uniqueCitationsByDocument(mergedCitations).slice(0, 2),
   };
 }
 

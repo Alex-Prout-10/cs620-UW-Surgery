@@ -188,13 +188,12 @@ Required for normal live operation:
 Model configuration:
 
 - `OPENAI_MODEL`: answer-generation model. Defaults in code to `gpt-4.1`.
-- `OPENAI_ROUTER_MODEL`: route-decision model. Defaults in code to `gpt-4.1`.
-- `OPENAI_AGENT_MODEL`: gatekeeper/analyzer/scope model. Defaults in code to `gpt-4.1-mini`.
+- `OPENAI_ROUTER_MODEL`: combined safety/scope router model. Defaults to `OPENAI_AGENT_MODEL` or `gpt-4.1-mini`.
+- `OPENAI_AGENT_MODEL`: backward-compatible model setting for the combined router. Defaults in code to `gpt-4.1-mini`.
 - `OPENAI_EMBEDDING_MODEL`: embedding model. Defaults in code to `text-embedding-3-small`.
 
 Behavior flags:
 
-- `ENABLE_AGENT_PIPELINE`: set to `false` to disable the gatekeeper/analyzer/scope pipeline. Enabled by default when OpenAI is configured.
 - `DISABLE_OPENAI`: set to `true` to force fallback responses.
 - `RUN_INGEST`: used by the Docker/demo startup path to control whether ingestion runs.
 
@@ -283,7 +282,7 @@ Supported card types:
 
 ## 7. Agent Pipeline
 
-The agent pipeline lives in:
+The safety and scope router lives in:
 
 - `lib/agents/agents.ts`
 - `lib/agents/pipeline.ts`
@@ -291,23 +290,24 @@ The agent pipeline lives in:
 It runs before the main dialogue engine when:
 
 - `OPENAI_API_KEY` is present,
-- `ENABLE_AGENT_PIPELINE` is not `false`,
 - `NODE_ENV` is not `test`.
 
-Pipeline steps:
+The router uses one structured model call to classify safety and scope together:
 
-1. Gatekeeper: classifies the query as `safe`, `medical_emergency`, or `harmful`.
-2. Analyzer: identifies the user's underlying intent and question type.
-3. Scope validator: determines whether the query is within the adrenal nodule knowledge domain.
-
-Gatekeeper and analyzer run in parallel. The scope validator runs after them because it uses the analyzer output.
+- `safe`: if in scope, continue to retrieval and answer generation.
+- `self_harm_crisis`: return fixed crisis resources without generating an answer.
+- `medical_emergency`: return emergency guidance without generating an answer.
+- `harmful` or out of scope: return a fixed, scoped response without generating an answer.
+- router error: fail closed and return a fixed safety message.
 
 Pipeline outcomes:
 
 - `proceed`: continue to retrieval and answer generation.
 - `medical_emergency`: return emergency guidance immediately.
+- `self_harm_crisis`: return crisis resources immediately.
 - `block`: return an out-of-scope or unsafe-content response.
 - `clarify`: ask a clarification question before answering.
+- `unavailable`: stop safely if the router cannot be reached.
 
 The API attaches `pipeline_trace` to the response. This is useful for debugging and can be rendered by the frontend trace card.
 

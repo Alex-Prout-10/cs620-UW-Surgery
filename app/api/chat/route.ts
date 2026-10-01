@@ -3,7 +3,7 @@ import { runDialogueEngine } from '@/lib/dialogueEngine';
 import { runAgentPipeline } from '@/lib/agents/pipeline';
 import type { PipelineTrace } from '@/lib/agents/schemas';
 import { prisma } from '@/lib/prisma';
-import { BASE_DISCLAIMERS, stripPromptInjection } from '@/lib/safety';
+import { BASE_DISCLAIMERS, hasDirectSelfHarmCrisis, stripPromptInjection } from '@/lib/safety';
 import { getCommonQuestionAnswer } from '@/lib/commonQuestions';
 
 export const runtime = 'nodejs';
@@ -74,34 +74,40 @@ async function saveChatTurn(
 ) {
   if (!process.env.DATABASE_URL) return;
 
-  await prisma.session.upsert({
-    where: { id: sessionId },
-    update: {},
-    create: { id: sessionId }
-  });
-  await prisma.message.create({
-    data: {
-      sessionId,
-      role: 'user',
-      contentText: userMessage.trim().slice(0, 1200)
-    }
-  });
-  await prisma.message.create({
-    data: {
-      sessionId,
-      role: 'assistant',
-      contentJson: assistantResponse
-    }
-  });
+  try {
+    await prisma.session.upsert({
+      where: { id: sessionId },
+      update: {},
+      create: { id: sessionId }
+    });
+    await prisma.message.create({
+      data: {
+        sessionId,
+        role: 'user',
+        contentText: userMessage.trim().slice(0, 1200)
+      }
+    });
+    await prisma.message.create({
+      data: {
+        sessionId,
+        role: 'assistant',
+        contentJson: assistantResponse
+      }
+    });
+  } catch (error) {
+    // Chat delivery, especially an urgent safety response, must not depend on
+    // session-history persistence being available.
+    console.warn('Unable to save chat turn.', error);
+  }
 }
 
-function buildApprovedAnswer(answer: string) {
+function buildApprovedAnswer(answer: string, sources: string[] = []) {
   return {
     mode: 'faq' as const,
     assistant_message: answer,
     response_overview: answer,
     response_details: [],
-    citations: [],
+    citations: sources.map((source) => ({ citation_key: source, quote: null })),
     ui_cards: [],
     suggested_actions: [],
     triage_level: 'none' as const,
@@ -123,11 +129,33 @@ export async function POST(request: NextRequest) {
     const requestedSessionId = typeof body?.session_id === 'string' ? body.session_id : null;
     const sessionId = requestedSessionId || request.cookies.get('session_id')?.value || crypto.randomUUID();
 
+    // Clear self-harm statements receive immediate crisis-resource guidance
+    // without waiting for a model router or the adrenal RAG answer call.
+    if (hasDirectSelfHarmCrisis(sanitizedMessage)) {
+      const response = {
+        mode: 'triage',
+        assistant_message:
+          'I’m really sorry you’re going through this. You deserve support right now. ' +
+          'If you’re thinking about suicide or self-harm, call or text **988** in the U.S. ' +
+          'or visit [988lifeline.org](https://988lifeline.org) to reach the 988 Suicide & Crisis Lifeline. ' +
+          'If you may act now, have already hurt yourself, or are in immediate danger, call **911** ' +
+          'or go to the nearest emergency department.',
+        disclaimer: DISCLAIMER,
+        citations: [],
+        ui_cards: [],
+        suggested_actions: [],
+        triage_level: 'urgent',
+        pipeline_trace: null
+      };
+      await saveChatTurn(sessionId, sanitizedMessage, response);
+      return jsonWithSession(response, sessionId);
+    }
+
     // Use the clinician-approved wording for the homepage's common questions.
     // This avoids unnecessary model calls and keeps the answer stable.
     const approvedQuestion = getCommonQuestionAnswer(sanitizedMessage);
     if (approvedQuestion) {
-      const response = buildApprovedAnswer(approvedQuestion.answer);
+      const response = buildApprovedAnswer(approvedQuestion.answer, approvedQuestion.sources);
       await saveChatTurn(sessionId, sanitizedMessage, response);
       return jsonWithSession(response, sessionId);
     }
@@ -155,7 +183,7 @@ export async function POST(request: NextRequest) {
     let pipelineTrace: PipelineTrace | null = null;
     const agentsEnabled =
       !!process.env.OPENAI_API_KEY &&
-      process.env.ENABLE_AGENT_PIPELINE !== 'false' &&
+      process.env.DISABLE_OPENAI !== 'true' &&
       process.env.NODE_ENV !== 'test';
 
     if (agentsEnabled) {
@@ -181,13 +209,52 @@ export async function POST(request: NextRequest) {
         return jsonWithSession(response, sessionId);
       }
 
+      if (pipelineResult.action === 'self_harm_crisis') {
+        const response = {
+          mode: 'triage',
+          assistant_message:
+            'I’m sorry you or someone you care about is going through this. You deserve support right now. ' +
+            'If you’re thinking about suicide or self-harm, call or text **988** in the U.S. ' +
+            'or visit [988lifeline.org](https://988lifeline.org) to reach the 988 Suicide & Crisis Lifeline. ' +
+            'If there is immediate danger, an attempt is in progress, or someone has already been hurt, ' +
+            'call **911** or go to the nearest emergency department.',
+          disclaimer: DISCLAIMER,
+          citations: [],
+          ui_cards: [],
+          suggested_actions: [],
+          triage_level: 'urgent',
+          pipeline_trace: pipelineTrace
+        };
+        await saveChatTurn(sessionId, sanitizedMessage, response);
+        return jsonWithSession(response, sessionId);
+      }
+
+      if (pipelineResult.action === 'unavailable') {
+        const response = {
+          mode: 'faq',
+          assistant_message:
+            'I’m having trouble safely reviewing your message right now. Please try again shortly. ' +
+            'If you may hurt yourself or someone else, or are in immediate danger, call **911** or go to an emergency department. ' +
+            'If you’re in the U.S. and need suicide or mental health crisis support, call or text **988**.',
+          disclaimer: DISCLAIMER,
+          citations: [],
+          ui_cards: [],
+          suggested_actions: [],
+          triage_level: 'none',
+          pipeline_trace: null
+        };
+        await saveChatTurn(sessionId, sanitizedMessage, response);
+        return jsonWithSession(response, sessionId);
+      }
+
       if (pipelineResult.action === 'block') {
         const response = {
           mode: 'faq',
           assistant_message:
-            'Sorry, I can only answer questions about adrenal nodules (spots on the adrenal gland). ' +
-            'Try asking your question in a different way.\n\n' +
-            'If this is an emergency, please call **911**.',
+            pipelineResult.trace.gatekeeper?.category === 'harmful'
+              ? 'I can’t help with that request. I can answer general questions about adrenal nodules, hormone testing, imaging, and follow-up.'
+              : 'I can help with general questions about adrenal nodules, hormone testing, imaging, and follow-up. ' +
+                'I can’t answer this topic, but if it connects to your adrenal care, tell me how and I’ll try to help.',
           disclaimer: DISCLAIMER,
           citations: [],
           ui_cards: [],

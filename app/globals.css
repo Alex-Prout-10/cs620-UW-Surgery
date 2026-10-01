@@ -45,6 +45,11 @@ html.high-contrast .card {
   box-shadow: none;
 }
 
+html.high-contrast .chat-experience {
+  background: #ffffff;
+  border-color: #000000;
+}
+
 html.high-contrast a,
 html.high-contrast button {
   color: #000000;
@@ -107,6 +112,36 @@ a {
   padding: 1.5rem;
   box-shadow: 0 12px 30px rgba(40, 39, 40, 0.08);
   backdrop-filter: blur(8px);
+}
+
+.chat-experience {
+  min-height: calc(100vh - 13rem);
+  padding: clamp(1rem, 2.5vw, 2rem);
+  border: 1px solid rgba(197, 5, 12, 0.14);
+  border-radius: 28px;
+  background:
+    radial-gradient(ellipse at 5% 0%, rgba(197, 5, 12, 0.2), transparent 44%),
+    linear-gradient(135deg, #fbe5e6 0%, #f5d8da 52%, #f9e9ea 100%);
+}
+
+.common-questions-scroller {
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-color: rgba(197, 5, 12, 0.35) transparent;
+  scrollbar-width: thin;
+}
+
+.common-questions-scroller::-webkit-scrollbar {
+  height: 6px;
+}
+
+.common-questions-scroller::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(197, 5, 12, 0.35);
+}
+
+.common-questions-scroller::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .badge {

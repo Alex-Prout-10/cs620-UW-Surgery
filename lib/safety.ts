@@ -93,6 +93,24 @@ const RED_FLAG_PATTERNS: { pattern: RegExp; label: string }[] = [
   { pattern: /suicid(al|e)|self-harm|hurt myself/i, label: 'Self-harm thoughts' }
 ];
 
+// Catch clear, first-person crisis statements before any model call. The
+// structured router remains necessary for indirect or third-person language.
+const DIRECT_SELF_HARM_PATTERNS: RegExp[] = [
+  /\b(?:suicidal|suicide)\b/i,
+  /\bself[- ]?harm\b/i,
+  /\b(?:kill|hurt|harm)\s+myself\b/i,
+  /\b(?:end|ending)\s+(?:my|your|their)\s+life\b/i,
+  /\b(?:want|wanna|wish|plan|thinking about|think about|feel like)\b.{0,32}\b(?:end|ending)\b.{0,12}\b(?:my|your|their)\s+life\b/i,
+  /\b(?:do not|don't|dont|can not|can't|cannot)\s+(?:want|wish)\s+to\s+(?:live|be alive)\b/i,
+  /\b(?:not|no longer)\s+(?:want(?:ing)?\s+to\s+)?live\b/i,
+  /\b(?:wish|wished)\s+(?:i|they|he|she)\s+(?:were|was|could be)\s+dead\b/i,
+  /\b(?:better off|rather)\s+dead\b/i
+];
+
+export function hasDirectSelfHarmCrisis(message: string): boolean {
+  return DIRECT_SELF_HARM_PATTERNS.some((pattern) => pattern.test(message));
+}
+
 export type RedFlagResult = {
   hasRedFlags: boolean;
   redFlags: string[];
