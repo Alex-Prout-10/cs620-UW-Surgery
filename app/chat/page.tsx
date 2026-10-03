@@ -411,65 +411,51 @@ export default function ChatPage() {
             </h1>
           </div>
 
-          <div className="w-full rounded-2xl border border-uwred/20 bg-gradient-to-br from-uwred/[0.08] via-white to-white p-5 text-darkgray shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-uwred font-serif text-lg text-white shadow-sm">i</span>
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.18em] text-uwred">UW Endocrinology Resource</p>
-              </div>
+          <div>
+            <div className="rounded-2xl border border-uwred/15 bg-gradient-to-br from-uwred/[0.07] via-white to-rose-50/80 p-5 sm:p-7">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-uwred">UW Endocrinology Resource</p>
+              <h2 id="about-chatbot-heading" className="mt-1 font-serif text-3xl text-darkgray">About this chatbot</h2>
+              <p className="mt-3 max-w-4xl text-base leading-relaxed text-muted">
+                The Adrenal Nodule Chatbot is curated and endorsed by the UW Adrenal Nodule team. It helps you understand adrenal nodules and prepare for conversations with your care team. Answers draw on selected UW Health education materials and established clinical guidelines, with sources available alongside answers when applicable.
+              </p>
             </div>
-            <p className="mt-3 text-sm leading-relaxed text-muted">
-              Curated and endorsed by the UW Adrenal team, this chatbot answers adrenal nodule questions using selected UW Health resources and established clinical guidelines, rather than open-ended internet searches. It provides general education, not a diagnosis or a substitute for your care team. Source material appears below answers when available.
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-muted">
-              To get a useful answer, ask about{" "}
-              <strong className="font-semibold text-gray-900">
-                adrenal nodules
-              </strong>
-              ,{" "}
-              <strong className="font-semibold text-gray-900">
-                preparing for tests
-              </strong>
-              , and{" "}
-              <strong className="font-semibold text-gray-900">
-                navigating your follow-up care
-              </strong>
-              . This chatbot is strictly designed to help you understand your
-              care path and next steps — it cannot diagnose conditions, answer
-              unrelated medical questions, or replace advice from your care
-              team.
-            </p>
-            <ol className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
               {[
                 {
-                  title: "Ask a question",
-                  description: "Ask about adrenal nodules, tests, or follow-up care.",
+                  number: '01',
+                  title: 'What it can help with',
+                  description: 'Get general explanations about adrenal nodules, hormone tests, imaging, follow-up, and treatment discussions. It can also help you prepare questions for an appointment.'
                 },
                 {
-                  title: "Use follow-up questions",
-                  description: "Continue the conversation when you want more detail.",
+                  number: '02',
+                  title: 'How to use it',
+                  description: 'Ask one clear question at a time, choose a common question for a prepared answer, and ask follow-ups when you want more detail. Open Sources beneath an answer to review its references.'
                 },
                 {
-                  title: "Open sources",
-                  description: "Review the references shown beneath answers when available.",
+                  number: '03',
+                  title: 'Focused and source-based',
+                  description: 'Unlike general-purpose commercial chatbots, this tool is designed for adrenal nodule education and uses a selected health information library rather than searching the open internet.'
                 },
-              ].map((step, index) => (
-                <li
-                  key={step.title}
-                  className="group rounded-2xl border border-uwred/15 bg-gradient-to-br from-white via-white to-rose-50/80 p-3 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-uwred/30 hover:shadow-md"
-                >
+                {
+                  number: '04',
+                  title: 'A guide, not a diagnosis',
+                  description: 'It cannot see your medical record or decide which tests or treatment are right for you. Your care team can interpret your results in context. For a medical emergency, call 911.'
+                }
+              ].map((item) => (
+                <article key={item.number} className="group rounded-2xl border border-uwred/15 bg-gradient-to-br from-white via-white to-rose-50/80 p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-uwred/30 hover:shadow-md">
                   <div className="flex items-start gap-3">
-                    <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-uwred/[0.09] font-serif text-xs font-bold text-uwred ring-4 ring-uwred/[0.04]">
-                      {String(index + 1).padStart(2, "0")}
+                    <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-uwred/[0.09] font-serif text-sm font-bold text-uwred ring-4 ring-uwred/[0.04]">
+                      {item.number}
                     </span>
                     <div>
-                      <h3 className="font-serif text-sm text-darkgray">{step.title}</h3>
-                      <p className="mt-1 text-xs leading-relaxed text-muted">{step.description}</p>
+                      <h3 className="font-serif text-lg text-darkgray">{item.title}</h3>
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted">{item.description}</p>
                     </div>
                   </div>
-                </li>
+                </article>
               ))}
-            </ol>
+            </div>
           </div>
 
           {/* Compact, Centered Reset / New Chat Button Below Banner */}

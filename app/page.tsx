@@ -3,53 +3,6 @@ import Link from 'next/link';
 export default function HomePage() {
   return (
     <div className="grid gap-6">
-      <section aria-labelledby="about-chatbot-heading" className="card fade-in">
-        <div className="rounded-2xl border border-uwred/15 bg-gradient-to-br from-uwred/[0.07] via-white to-rose-50/80 p-5 sm:p-7">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-uwred">UW Endocrinology Resource</p>
-          <h2 id="about-chatbot-heading" className="mt-1 font-serif text-3xl text-darkgray">About this chatbot</h2>
-          <p className="mt-3 max-w-4xl text-base leading-relaxed text-muted">
-            The Adrenal Nodule Chatbot is curated and endorsed by the UW Adrenal Nodule team. It helps you understand adrenal nodules and prepare for conversations with your care team. Answers draw on selected UW Health education materials and established clinical guidelines, with sources available alongside answers when applicable.
-          </p>
-        </div>
-
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          {[
-            {
-              number: '01',
-              title: 'What it can help with',
-              description: 'Get general explanations about adrenal nodules, hormone tests, imaging, follow-up, and treatment discussions. It can also help you prepare questions for an appointment.'
-            },
-            {
-              number: '02',
-              title: 'How to use it',
-              description: 'Ask one clear question at a time, choose a common question for a prepared answer, and ask follow-ups when you want more detail. Open Sources beneath an answer to review its references.'
-            },
-            {
-              number: '03',
-              title: 'Focused and source-based',
-              description: 'Unlike general-purpose commercial chatbots, this tool is designed for adrenal nodule education and uses a selected health information library rather than searching the open internet.'
-            },
-            {
-              number: '04',
-              title: 'A guide, not a diagnosis',
-              description: 'It cannot see your medical record or decide which tests or treatment are right for you. Your care team can interpret your results in context. For a medical emergency, call 911.'
-            }
-          ].map((item) => (
-            <article key={item.number} className="group rounded-2xl border border-uwred/15 bg-gradient-to-br from-white via-white to-rose-50/80 p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-uwred/30 hover:shadow-md">
-              <div className="flex items-start gap-3">
-                <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-uwred/[0.09] font-serif text-sm font-bold text-uwred ring-4 ring-uwred/[0.04]">
-                  {item.number}
-                </span>
-                <div>
-                  <h3 className="font-serif text-lg text-darkgray">{item.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted">{item.description}</p>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
       {/* Educational Video Section */}
       <section className="card fade-in overflow-hidden p-0">
         <div className="px-5 pt-4 pb-2">
