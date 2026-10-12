@@ -181,6 +181,12 @@ function buildFallbackTurn({
     assistantMessage =
       emergencyGuidance ??
       "Your symptoms may need urgent care. Please go to the emergency room or call 911 right away.";
+  } else if (
+    /(symptom|signs?|effects?)/i.test(lower) &&
+    /(hormone|cortisol|aldosterone|adrenal|nodule|excess)/i.test(lower)
+  ) {
+    assistantMessage =
+      "Symptoms can have many causes, so symptoms alone cannot show whether an adrenal nodule is making too much hormone. If hormone testing has not been done for your nodule, please contact your clinic and ask to have the recommended lab tests arranged. A scan can show that a nodule looks noncancerous, but lab tests check whether it is making extra hormones. If you already had hormone tests, ask whether those results address your symptoms before repeating them.";
   } else if (lower.includes("surgery")) {
     assistantMessage =
       "Whether you need surgery depends on your scan results and hormone levels. Many spots are just watched over time. Your doctor will look at your results and talk with you about what to do.";
@@ -417,6 +423,7 @@ POLICIES:
 - Do not recommend medication changes.
 - Do not recommend adrenal biopsy; explain that biopsy is not a first step and requires hormone testing first.
 - If severe symptoms appear, advise urgent evaluation or emergency services.
+- When a patient reports symptoms or asks whether symptoms could be related to adrenal hormone excess, explain that symptoms can be vague and have other causes, so symptoms alone cannot confirm hormone excess. Be a proactive guide: if hormone testing has not been completed as part of this nodule evaluation, clearly recommend contacting the clinic to request the appropriate hormone lab tests and arrange them. A benign-looking scan or a decision that no more imaging is needed does not by itself establish whether hormone testing was completed. If the patient already had hormone testing, do not recommend repeating it automatically; suggest asking whether the existing results address the concern. Explain that results can help assess whether hormone excess may be contributing, but cannot prove that it caused a particular symptom. Do not prescribe an unsupported test panel or suggest bypassing clinical interpretation. Name specific tests only when supported by the provided chunks. Keep urgent guidance for severe symptoms.
 - Cite clinical claims using ONLY the provided chunks and their citation_key values.
 - Every citation must include quote: an exact, continuous 5-to-25-word excerpt from that same provided chunk which supports a factual claim in your answer. Do not cite a source if you cannot supply that exact supporting excerpt.
 - For a multi-topic answer, do not let one citation imply support for the entire answer. Each distinct clinical topic (for example testing, imaging, monitoring, or surgery) needs its own supporting citation, or must be omitted or identified as not covered by the available sources.
