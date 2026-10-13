@@ -9,6 +9,29 @@ export type PipelineOutcome =
   | { action: 'clarify'; question: string; trace: PipelineTrace }
   | { action: 'unavailable'; trace: PipelineTrace };
 
+function canAnswerOrResolveFromContext(
+  userMessage: string,
+  recentConversation: string[]
+) {
+  const message = userMessage.trim();
+  const hasQuestionShape =
+    /[?？]/.test(message) ||
+    /^(how|what|why|when|where|who|can|could|do|does|did|is|are|will|would|should|explain|tell me)\b/i.test(message) ||
+    /\b(?:wondering|curious)\b.*\b(?:how|what|why|when|where|who)\b/i.test(message);
+
+  const lastNavigatorMessage = [...recentConversation]
+    .reverse()
+    .find((entry) => entry.startsWith('Navigator:'));
+  const isMeaningfulClarificationReply =
+    message.length >= 12 &&
+    !!lastNavigatorMessage &&
+    /\b(?:what specific|what information|what are you looking for|could you clarify|can you clarify|tell me more)\b/i.test(
+      lastNavigatorMessage
+    );
+
+  return hasQuestionShape || isMeaningfulClarificationReply;
+}
+
 export async function runAgentPipeline(
   rawQuery: string,
   recentConversation: string[] = []
@@ -47,6 +70,17 @@ export async function runAgentPipeline(
   }
 
   if (routing.needs_clarification && routing.clarification_question) {
+    if (canAnswerOrResolveFromContext(rawQuery, recentConversation)) {
+      if (trace.scope) {
+        trace.scope = {
+          ...trace.scope,
+          needs_clarification: false,
+          clarification_question: null,
+          reason: 'Proceeding because the question is answerable from its wording or recent clarification context.'
+        };
+      }
+      return { action: 'proceed', trace };
+    }
     return { action: 'clarify', question: routing.clarification_question, trace };
   }
 

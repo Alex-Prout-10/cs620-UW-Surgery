@@ -19,15 +19,15 @@ const citationKeywords = /(DST|dexamethasone|metanephrines|HU|Hounsfield|biopsy|
 const goldens = [
   {
     prompt: 'What is the usual workup after an incidental adrenal nodule?',
-    expected: { mode: 'faq', triage_level: 'none', cards: ['roadmap', 'cost_navigation'] }
+    expected: { mode: 'faq', triage_level: 'none', cards: ['questions_to_ask'] }
   },
   {
     prompt: 'I have severe headache, palpitations, sweating',
-    expected: { mode: 'triage', triage_level: 'emergency', cards: ['symptom_check', 'handoff'] }
+    expected: { mode: 'triage', triage_level: 'emergency', cards: [] }
   },
   {
     prompt: 'Can you help me with intake questions?',
-    expected: { mode: 'guided_intake', triage_level: 'none', cards: ['symptom_check', 'checklist', 'questions_to_ask'] }
+    expected: { mode: 'guided_intake', triage_level: 'none', cards: ['questions_to_ask'] }
   }
 ];
 

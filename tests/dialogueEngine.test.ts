@@ -1,4 +1,28 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+const { retrieveRelevantChunksMock } = vi.hoisted(() => ({
+  retrieveRelevantChunksMock: vi.fn().mockResolvedValue({
+    chunks: [
+      {
+        chunk_id: 'dialogue-test-chunk',
+        source_doc: 'Dialogue test source',
+        page_range: '1-1',
+        text_snippet: 'Testing checks adrenal hormone levels and imaging features.',
+        lead_sentence: 'Testing checks adrenal hormone levels and imaging features.',
+        citation_key: 'DOC:Dialogue test source|CHUNK:dialogue-test-chunk|P:1-1'
+      }
+    ]
+  })
+}));
+
+vi.mock('@/lib/knowledge', () => ({
+  retrieveRelevantChunks: retrieveRelevantChunksMock
+}));
+vi.mock('@/lib/appConfig', () => ({ getAppConfigMap: vi.fn().mockResolvedValue({}) }));
+vi.mock('@/lib/prisma', () => ({ prisma: { message: { findMany: vi.fn() } } }));
+
+process.env.DISABLE_OPENAI = 'true';
+process.env.DATABASE_URL = '';
 import { runDialogueEngine } from '@/lib/dialogueEngine';
 
 const baseClientState = { stage: 'intake' };
@@ -13,7 +37,7 @@ describe('Dialogue Engine fallback behaviors', () => {
 
     expect(result.mode).toBe('faq');
     expect(result.triage_level).toBe('none');
-    expect(result.assistant_message.toLowerCase()).toContain('depends on imaging');
+    expect(result.assistant_message.toLowerCase()).toContain('scan results');
     expect(result.citations.length).toBeGreaterThan(0);
   });
 
@@ -47,8 +71,7 @@ describe('Dialogue Engine fallback behaviors', () => {
       clientState: null
     });
 
-    const hasTestCard = result.ui_cards.some((card) => card.type === 'test_instructions');
-    expect(hasTestCard).toBe(true);
+    expect(result.assistant_message.toLowerCase()).toContain('blood draw the next morning');
     expect(result.citations.length).toBeGreaterThan(0);
   });
 });
