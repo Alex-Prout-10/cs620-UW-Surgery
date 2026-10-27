@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import AccessibilityToggles from '@/components/AccessibilityToggles';
 
@@ -24,13 +26,10 @@ const resourceLinks = [
   }
 ];
 
-export default function Nav() {
+export default function Nav({ homeTheme = false }: { homeTheme?: boolean }) {
   return (
-
-
-    <nav className="flex flex-col gap-4 md:grid md:grid-cols-[auto,1fr,auto] md:items-center">
-      {/*navigate home ref button*/}
-      <Link href="/" className="flex items-center gap-3">
+    <nav className="site-nav flex flex-col gap-4 md:grid md:grid-cols-[auto,1fr,auto] md:items-center">
+      <Link href="/" className="site-nav-brand flex min-w-0 items-center gap-3">
         <img
           src="/uw-madison-emblem.png"
           alt="University of Wisconsin–Madison emblem"
@@ -38,19 +37,18 @@ export default function Nav() {
           height={64}
           className="h-14 w-auto shrink-0"
         />
-        <div>
-          <span className="text-sm uppercase tracking-[0.3em] text-uwred">Adrenal Nodule Clinic Navigator</span>
-          <div className="font-serif text-2xl text-darkgray">Patient Guide</div>
+        <div className="min-w-0">
+          <span className="site-nav-brand-kicker text-sm uppercase tracking-[0.3em] text-uwred">Adrenal Nodule Clinic Navigator</span>
+          <div className="site-nav-brand-title font-serif text-2xl text-darkgray">Patient Guide</div>
         </div>
       </Link>
 
-
-      <div className="flex flex-wrap gap-3 text-sm md:flex-nowrap md:justify-center">
+      <div className="site-nav-links flex flex-wrap gap-3 text-sm md:flex-nowrap md:justify-center">
         {links.map((link) => (
           <Link
             key={link.href}
             href={link.href}
-            className="rounded-full border border-transparent bg-white/70 px-4 py-2 text-darkgray shadow-sm transition hover:border-uwred hover:bg-white"
+            className="site-nav-link rounded-full border border-transparent bg-white/70 px-4 py-2 text-darkgray shadow-sm transition hover:border-uwred hover:bg-white"
           >
             {link.label}
           </Link>
@@ -60,22 +58,22 @@ export default function Nav() {
 
 
         {/* resources dropdown panel */}
-        <div className="group relative pt-2 -mt-2">
+        <div className="site-nav-resources group relative -mt-2 pt-2">
           <button
             type="button"
-            className="inline-flex items-center rounded-full border border-transparent bg-white/70 px-4 py-2 text-darkgray shadow-sm transition hover:border-uwred hover:bg-white"
+            className="site-nav-link site-nav-resource-button inline-flex items-center rounded-full border border-transparent bg-white/70 px-4 py-2 text-darkgray shadow-sm transition hover:border-uwred hover:bg-white"
           >
             Resources
             <span className="ml-2 text-xs text-darkgray/70">▼</span>
           </button>
-          <div className="invisible absolute left-0 top-full z-20 w-72 rounded-2xl border border-gray-200 bg-white/95 p-2 text-sm shadow-lg opacity-0 transition pointer-events-none group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:visible group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
+          <div className="site-nav-resource-menu invisible pointer-events-none absolute left-0 top-full z-20 w-72 rounded-2xl border border-gray-200 bg-white/95 p-2 text-sm opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:opacity-100">
             {resourceLinks.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
                 target="_blank"
                 rel="noreferrer"
-                className="block rounded-xl px-3 py-2 text-darkgray transition hover:bg-uwred/10 hover:text-uwred"
+                className="site-nav-resource-item block rounded-xl px-3 py-2 text-darkgray transition hover:bg-uwred/10 hover:text-uwred"
               >
                 {link.label}
               </a>
@@ -83,8 +81,8 @@ export default function Nav() {
           </div>
         </div>
       </div>
-      <div className="flex md:justify-end">
-        <AccessibilityToggles />
+      <div className="site-nav-controls flex md:justify-end">
+        <AccessibilityToggles onDark={homeTheme} compact={homeTheme} />
       </div>
     </nav>
   );

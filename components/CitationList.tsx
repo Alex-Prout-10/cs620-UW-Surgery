@@ -11,11 +11,11 @@ export default function CitationList({ citations, leadSentences }: CitationListP
   if (!databaseCitations.length) return null;
 
   return (
-    <details className="group w-fit max-w-full rounded-xl border border-accent/70 bg-white/70 px-3 py-2">
-      <summary className="cursor-pointer list-none text-xs font-semibold text-darkgray marker:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-uwred focus-visible:ring-offset-2">
+    <details className="chat-citations group w-fit max-w-full rounded-xl border border-accent/70 bg-white/70 px-3 py-2">
+      <summary className="chat-citations-summary cursor-pointer list-none text-xs font-semibold text-darkgray marker:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-uwred focus-visible:ring-offset-2">
         <span className="inline-flex items-center gap-2">
           Sources
-          <span className="rounded-full bg-uwred/[0.08] px-1.5 py-0.5 text-[0.625rem] font-bold text-uwred">{databaseCitations.length}</span>
+          <span className="chat-citation-number rounded-full bg-uwred/[0.08] px-1.5 py-0.5 text-[0.625rem] font-bold text-uwred">{databaseCitations.length}</span>
           <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-180">⌄</span>
         </span>
       </summary>
@@ -30,9 +30,9 @@ export default function CitationList({ citations, leadSentences }: CitationListP
 
           const cardContent = (
             <>
-              <span className="font-semibold text-uwred">[{index + 1}]</span>
-              <span className="max-w-56 truncate font-medium text-darkgray">{parsed.displayTitle}</span>
-              {parsed.pageLabel && <span className="text-muted">{parsed.pageLabel}</span>}
+              <span className="chat-citation-number font-semibold text-uwred">[{index + 1}]</span>
+              <span className="chat-citation-title max-w-56 truncate font-medium text-darkgray">{parsed.displayTitle}</span>
+              {parsed.pageLabel && <span className="chat-citation-muted text-muted">{parsed.pageLabel}</span>}
             </>
           );
 
@@ -45,7 +45,7 @@ export default function CitationList({ citations, leadSentences }: CitationListP
               <a
                 href={viewerHref}
                 title={`Open ${parsed.displayTitle}${parsed.pageLabel ? `, ${parsed.pageLabel}` : ''}`}
-                className="group inline-flex max-w-full items-center gap-1.5 rounded-full border border-accent/70 bg-white/80 px-3 py-1.5 text-xs transition hover:border-uwred hover:bg-uwred/[0.03]"
+                className="chat-citation-link group inline-flex max-w-full items-center gap-1.5 rounded-full border border-accent/70 bg-white/80 px-3 py-1.5 text-xs transition hover:border-uwred hover:bg-uwred/[0.03]"
               >
                 {cardContent}
               </a>
@@ -53,7 +53,7 @@ export default function CitationList({ citations, leadSentences }: CitationListP
           ) : (
             <li
               key={`${item.citation_key}-${item.quote ?? 'none'}`}
-              className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-accent/70 bg-white/80 px-3 py-1.5 text-xs"
+              className="chat-citation-item inline-flex max-w-full items-center gap-1.5 rounded-full border border-accent/70 bg-white/80 px-3 py-1.5 text-xs"
             >
               {cardContent}
             </li>

@@ -5,8 +5,7 @@ import remarkGfm from "remark-gfm";
 import type { AssistantTurn } from "@/lib/schemas";
 import CardRenderer from "@/components/cards/CardRenderer";
 import CitationList from "@/components/CitationList";
-import PipelineTraceCard from "@/components/cards/PipelineTraceCard";
-import { COMMON_QUESTIONS } from "@/lib/commonQuestions";
+import ChatWorkspace from "@/components/chat/ChatWorkspace";
 
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
@@ -400,125 +399,16 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="chat-experience grid gap-6">
-      {/* Ask Your Questions header */}
-      <section id="chat" className="card fade-in scroll-mt-24">
-        <div className="flex flex-col gap-4">
-          {/* Header Title */}
-          <div>
-            <h1 className="font-serif text-3xl text-gray-800">
-              Adrenal Nodule Chatbot
-            </h1>
-          </div>
-
-          <div>
-            <div className="rounded-2xl border border-uwred/15 bg-gradient-to-br from-uwred/[0.07] via-white to-rose-50/80 p-5 sm:p-7">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-uwred">UW Endocrinology Resource</p>
-              <h2 id="about-chatbot-heading" className="mt-1 font-serif text-3xl text-darkgray">About this chatbot</h2>
-              <p className="mt-3 max-w-4xl text-base leading-relaxed text-muted">
-                The Adrenal Nodule Chatbot is curated and endorsed by the UW Adrenal Nodule team. It helps you understand adrenal nodules and prepare for conversations with your care team. Answers draw on selected UW Health education materials and established clinical guidelines, with sources available alongside answers when applicable.
-              </p>
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              {[
-                {
-                  number: '01',
-                  title: 'What it can help with',
-                  description: 'Get general explanations about adrenal nodules, hormone tests, imaging, follow-up, and treatment discussions. It can also help you prepare questions for an appointment.'
-                },
-                {
-                  number: '02',
-                  title: 'How to use it',
-                  description: 'Ask one clear question at a time, choose a common question for a prepared answer, and ask follow-ups when you want more detail. Open Sources beneath an answer to review its references.'
-                },
-                {
-                  number: '03',
-                  title: 'Focused and source-based',
-                  description: 'Unlike general-purpose commercial chatbots, this tool is designed for adrenal nodule education and uses a selected health information library rather than searching the open internet.'
-                },
-                {
-                  number: '04',
-                  title: 'A guide, not a diagnosis',
-                  description: 'It cannot see your medical record or decide which tests or treatment are right for you. Your care team can interpret your results in context. For a medical emergency, call 911.'
-                }
-              ].map((item) => (
-                <article key={item.number} className="group rounded-2xl border border-uwred/15 bg-gradient-to-br from-white via-white to-rose-50/80 p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-uwred/30 hover:shadow-md">
-                  <div className="flex items-start gap-3">
-                    <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-uwred/[0.09] font-serif text-sm font-bold text-uwred ring-4 ring-uwred/[0.04]">
-                      {item.number}
-                    </span>
-                    <div>
-                      <h3 className="font-serif text-lg text-darkgray">{item.title}</h3>
-                      <p className="mt-1.5 text-sm leading-relaxed text-muted">{item.description}</p>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-
-          {/* Compact, Centered Reset / New Chat Button Below Banner */}
-          {messages.length > 0 && (
-            <div className="flex justify-center mt-1">
-              <button
-                type="button"
-                onClick={handleClearHistory}
-                disabled={clearing}
-                className="rounded-full border border-gray-300 bg-white px-5 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-uwred hover:text-uwred disabled:opacity-50"
-              >
-                {clearing ? "Resetting…" : "Start New Chat"}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {appConfig.clinic_description && (
-          <div className="mt-4 rounded-2xl border border-accent bg-white/70 px-4 py-3 text-sm text-muted">
-            {appConfig.clinic_description}
-          </div>
-        )}
-      </section>
-
-      {messages.length === 0 && (
-        <section
-          aria-labelledby="common-questions-heading"
-          className="-mt-2 rounded-2xl border border-accent/70 bg-white px-5 py-4 shadow-sm"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 id="common-questions-heading" className="font-serif text-lg text-darkgray">
-              Common questions
-            </h2>
-            <p className="text-xs text-muted">
-              Choose one for a quick answer; scroll sideways to see more.
-            </p>
-          </div>
-          <div
-            aria-label="Browse common questions"
-            className="common-questions-scroller mt-3 flex gap-2 overflow-x-auto pb-2"
-            role="region"
-            tabIndex={0}
-          >
-            {COMMON_QUESTIONS.map((question) => (
-              <button
-                key={question.id}
-                type="button"
-                onClick={() => handleQuickReply(question.prompt)}
-                disabled={loading}
-                className="shrink-0 snap-start rounded-full border border-uwred/25 bg-uwred/[0.03] px-3 py-1.5 text-sm font-semibold text-darkgray transition hover:border-uwred hover:bg-uwred hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-uwred focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
-              >
-                {question.label}
-                {/*
-                  →
-                */}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Message Timeline Log */}
-      <section className="grid gap-4">
+    <ChatWorkspace
+      isEmpty={messages.length === 0}
+      clearing={clearing}
+      clinicDescription={appConfig.clinic_description ?? undefined}
+      onNewChat={handleClearHistory}
+      onQuestionSelect={handleQuickReply}
+      conversation={
+        <>
+          <section className="chat-message-list" aria-label="Messages">
+      <div className="chat-message-stack">
         {messages.map((message, index) => (
           <article
             key={message.id}
@@ -528,10 +418,10 @@ export default function ChatPage() {
                 ? latestResponseRef
                 : null
             }
-            className="card scroll-mt-24"
+            className={`chat-turn scroll-mt-24 ${message.role === "user" ? "chat-turn--user" : "chat-turn--assistant"}`}
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-xs uppercase tracking-[0.2em] text-uwred">
+            <div className="chat-turn-header">
+              <div className="chat-turn-speaker">
                 {message.role === "user" ? "You" : "Navigator"}
               </div>
               {message.role === "assistant" && ttsSupported && (
@@ -543,7 +433,7 @@ export default function ChatPage() {
                       ? "Stop reading"
                       : "Read message aloud"
                   }
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-accent text-uwred transition hover:bg-gray-100"
+                  className="chat-read-aloud-button"
                 >
                   {speakingMessageId === message.id ? (
                     <svg
@@ -578,9 +468,9 @@ export default function ChatPage() {
 
             {/* react */}
 
-            <div className="mt-3 text-base text-darkgray">
+            <div className="chat-turn-copy">
               {message.role === "user" ? (
-                <p>{message.content}</p>
+                <p className="chat-user-bubble">{message.content}</p>
               ) : !message.content && loading ? (
                 <div className="flex items-center gap-1.5" aria-label="Navigator is preparing a response">
                   <span className="thinking-dot" />
@@ -588,6 +478,7 @@ export default function ChatPage() {
                   <span className="thinking-dot thinking-dot-delay-2" />
                 </div>
               ) : (
+                <div className="chat-markdown">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   urlTransform={(url) =>
@@ -595,22 +486,22 @@ export default function ChatPage() {
                   }
                   components={{
                     h1: ({ children }) => (
-                      <h1 className="text-xl font-bold text-darkgray mt-4 mb-2 first:mt-0">
+                      <h1 className="chat-markdown-heading chat-markdown-h1">
                         {children}
                       </h1>
                     ),
                     h2: ({ children }) => (
-                      <h2 className="text-lg font-bold text-darkgray mt-4 mb-2 first:mt-0">
+                      <h2 className="chat-markdown-heading chat-markdown-h2">
                         {children}
                       </h2>
                     ),
                     h3: ({ children }) => (
-                      <h3 className="text-base font-semibold text-darkgray mt-3 mb-1 first:mt-0">
+                      <h3 className="chat-markdown-heading chat-markdown-h3">
                         {children}
                       </h3>
                     ),
                     h4: ({ children }) => (
-                      <h4 className="text-sm font-semibold text-darkgray mt-2 mb-1 first:mt-0">
+                      <h4 className="chat-markdown-heading chat-markdown-h4">
                         {children}
                       </h4>
                     ),
@@ -620,12 +511,12 @@ export default function ChatPage() {
                       </p>
                     ),
                     strong: ({ children }) => (
-                      <strong className="font-semibold text-darkgray">
+                      <strong className="font-semibold">
                         {children}
                       </strong>
                     ),
                     em: ({ children }) => (
-                      <em className="italic text-darkgray">{children}</em>
+                      <em className="italic">{children}</em>
                     ),
                     ol: ({ children }) => (
                       <ol className="my-3 ml-6 list-decimal space-y-2 block">
@@ -643,12 +534,12 @@ export default function ChatPage() {
                       </li>
                     ),
                     blockquote: ({ children }) => (
-                      <blockquote className="my-3 border-l-4 border-gray-300 pl-4 italic text-gray-700">
+                      <blockquote className="chat-markdown-quote">
                         {children}
                       </blockquote>
                     ),
                     code: ({ children }) => (
-                      <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono text-darkgray">
+                      <code className="chat-markdown-code">
                         {children}
                       </code>
                     ),
@@ -662,7 +553,7 @@ export default function ChatPage() {
                       if (citation) {
                         return (
                           <span
-                            className="mx-0.5 inline-flex align-super rounded-full border border-uwred/30 bg-uwred/5 px-1.5 py-0.5 text-[0.65rem] font-semibold leading-none text-uwred"
+                            className="chat-markdown-citation"
                             title={`Source ${citationNumber}; see Sources below`}
                             aria-label={`Source ${citationNumber}`}
                           >
@@ -676,22 +567,22 @@ export default function ChatPage() {
                   }}
                 >
                   {message.content.replace(/###\s*Questions You Might Want to Ask[\s\S]*/gi, "")}
-                  
                 </ReactMarkdown>
+                </div>
               )}
             </div>
 
             {message.role === "assistant" && message.responseTimeMs != null && (
-              <p className="mt-3 text-xs text-muted">
+              <p className="chat-response-time">
                 Response time: {(message.responseTimeMs / 1000).toFixed(1)} seconds
               </p>
             )}
 
             {message.role === "assistant" && message.data && (
-              <div className="mt-4 grid gap-4 text-sm text-muted">
+              <div className="chat-response-extras">
                 {message.data.triage_level !== "none" && (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-900">
-                    <div className="font-semibold">Triage guidance</div>
+                  <div className="chat-triage-box">
+                    <div className="font-semibold">Care guidance</div>
                     <div>
                       {(() => {
                         if (message.data.triage_level === "contact_clinic") {
@@ -777,100 +668,70 @@ export default function ChatPage() {
           </article>
         ))}
 
-        {loading && messages[messages.length - 1]?.role === "user" && (
-          <article className="card">
-            <div className="text-xs uppercase tracking-[0.2em] text-uwred">
-              Navigator
-            </div>
-            <div className="mt-3 flex items-center gap-1.5">
-              <span className="thinking-dot" />
-              <span className="thinking-dot thinking-dot-delay-1" />
-              <span className="thinking-dot thinking-dot-delay-2" />
-            </div>
-          </article>
-        )}
-
         <div ref={messagesEndRef} />
+      </div>
       </section>
 
-      <section className="card">
-        <div className="grid gap-4">
-          <div className="relative">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  handleSend();
-                }
-              }}
-              rows={3}
-              placeholder="Ask any question about adrenal nodules here."
-              className="w-full rounded-2xl border border-accent bg-white/80 px-4 py-3 pr-12"
-            />
-            {speechSupported && (
+        </>
+      }
+    >
+      <div className="chat-composer">
+        <div className="chat-composer-box">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                handleSend();
+              }
+            }}
+            rows={2}
+            aria-label="Ask a question about adrenal nodules"
+            placeholder="Ask a question about adrenal nodules…"
+            className="chat-message-input"
+          />
+          <div className="chat-composer-actions">
+            <div className="chat-composer-hint">Ask about testing, imaging, hormones, or follow-up</div>
+            <div className="chat-composer-buttons">
+              {speechSupported && (
+                <button
+                  type="button"
+                  onClick={toggleRecording}
+                  disabled={loading}
+                  aria-label={isRecording ? "Stop recording" : "Start voice input"}
+                  className={`chat-microphone-button${isRecording ? " chat-microphone-button--recording" : ""}`}
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="2" width="6" height="12" rx="3" />
+                    <path d="M5 10a7 7 0 0 0 14 0M12 17v5M9 22h6" />
+                  </svg>
+                </button>
+              )}
               <button
                 type="button"
-                onClick={toggleRecording}
-                disabled={loading}
-                aria-label={
-                  isRecording ? "Stop recording" : "Start voice input"
-                }
-                className={`absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full transition ${
-                  isRecording
-                    ? "bg-uwred text-white animate-pulse"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-uwred"
-                } disabled:opacity-50`}
+                onClick={() => handleSend()}
+                className="chat-send-button"
+                aria-label="Send message"
+                disabled={loading || !input.trim()}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4"
-                >
-                  <rect x="9" y="2" width="6" height="12" rx="3" />
-                  <path d="M5 10a7 7 0 0 0 14 0" />
-                  <line x1="12" y1="17" x2="12" y2="22" />
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 19V5M5 12l7-7 7 7" />
                 </svg>
               </button>
-            )}
+            </div>
           </div>
           {isRecording && (
-            <div className="flex items-center gap-2 text-xs font-semibold text-uwred">
-              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-uwred" />
-              Listening… speak now
+            <div className="chat-recording-status">
+              <span className="chat-recording-dot" />Listening… speak now
             </div>
           )}
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
-            <span>
-              To protect your privacy, please do not share any sensitive
-              details, such as your date of birth, Social Security Number, or
-              insurance information.
-            </span>
-            <button
-              type="button"
-              onClick={handleClearHistory}
-              className="font-semibold text-uwred transition hover:underline"
-              disabled={clearing}
-            >
-              {clearing ? "Clearing…" : "New Chat"}
-            </button>
-          </div>
-          <button
-            onClick={() => handleSend()}
-            className="rounded-full bg-uwred px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
-            disabled={loading}
-          >
-            Send
-          </button>
         </div>
-      </section>
-    </div>
+        <p className="chat-privacy-note">
+          Protect your privacy: avoid sharing your date of birth, Social Security number, or insurance details.
+        </p>
+      </div>
+    </ChatWorkspace>
   );
 }

@@ -5,13 +5,17 @@ import { useEffect, useState } from 'react';
 const STORAGE_KEY = 'navigator_accessibility';
 
 type AccessibilityState = {
-  highContrast: boolean;
   largeText: boolean;
 };
 
-export default function AccessibilityToggles() {
+export default function AccessibilityToggles({
+  onDark = false,
+  compact = false
+}: {
+  onDark?: boolean;
+  compact?: boolean;
+}) {
   const [state, setState] = useState<AccessibilityState>({
-    highContrast: false,
     largeText: false
   });
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
@@ -21,13 +25,10 @@ export default function AccessibilityToggles() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<AccessibilityState>;
-        setState({
-          highContrast: parsed.highContrast === true,
-          largeText: parsed.largeText === true
-        });
+        setState({ largeText: parsed.largeText === true });
       }
     } catch {
-      setState({ highContrast: false, largeText: false });
+      setState({ largeText: false });
     }
     setPreferencesLoaded(true);
   }, []);
@@ -36,7 +37,6 @@ export default function AccessibilityToggles() {
     if (!preferencesLoaded) return;
 
     const root = document.documentElement;
-    root.classList.toggle('high-contrast', state.highContrast);
     root.classList.toggle('large-text', state.largeText);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -45,24 +45,20 @@ export default function AccessibilityToggles() {
     }
   }, [preferencesLoaded, state]);
 
+  const inactiveButton = onDark
+    ? 'border-white/20 text-slate-200 hover:border-white/40 hover:bg-white/5'
+    : 'border-accent text-darkgray hover:border-uwred/50';
+
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs">
+    <div className={`accessibility-toggles flex flex-wrap items-center gap-2 ${compact ? 'text-[0.6875rem]' : 'text-xs'}`}>
       <button
         type="button"
-        aria-pressed={state.highContrast}
-        onClick={() => setState((prev) => ({ ...prev, highContrast: !prev.highContrast }))}
-        className={`rounded-full border px-3 py-1 ${
-          state.highContrast ? 'border-uwred bg-uwred text-white' : 'border-accent text-darkgray'
-        }`}
-      >
-        High contrast
-      </button>
-      <button
-        type="button"
+        aria-label="Large text"
+        title="Large text"
         aria-pressed={state.largeText}
         onClick={() => setState((prev) => ({ ...prev, largeText: !prev.largeText }))}
-        className={`rounded-full border px-3 py-1 ${
-          state.largeText ? 'border-uwred bg-uwred text-white' : 'border-accent text-darkgray'
+        className={`rounded-full border px-2.5 py-1 transition-colors ${
+          state.largeText ? 'border-uwred bg-uwred text-white' : inactiveButton
         }`}
       >
         Large text
