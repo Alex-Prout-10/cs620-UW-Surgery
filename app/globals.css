@@ -879,6 +879,17 @@ html.large-text .chat-info-body { font-size: 1rem; }
 .home-lab-detail-kicker { color: #ff9296; font-size: 0.62rem; font-weight: 750; letter-spacing: 0.12em; text-transform: uppercase; }
 .home-lab-detail h3 { margin: 0.25rem 0 0.35rem; color: #f1f4f7; font-size: 1rem; font-weight: 750; line-height: 1.4; }
 .home-lab-detail p { max-width: 70ch; margin: 0 auto; color: #aab5c2; font-size: 0.84rem; line-height: 1.7; }
+.home-chatbot-section { padding-top: 0.25rem; }
+.home-chatbot-intro { max-width: 62ch; margin: 0.65rem auto 0; color: #aab5c2; font-size: 0.84rem; line-height: 1.65; }
+.home-chatbot-panel { text-align: left; }
+.home-chatbot-note { margin: 0; border-top: 1px solid rgba(224, 232, 241, 0.12); padding: 0.85rem 1rem; color: #aab5c2; font-size: 0.76rem; line-height: 1.6; }
+.home-chatbot-launch { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; margin: clamp(1.5rem, 3vw, 2.25rem) 0 0; border: 1px solid rgba(224, 232, 241, 0.16); border-radius: 1.15rem; background: linear-gradient(115deg, rgba(197, 5, 12, 0.12), rgba(255, 255, 255, 0.035)); padding: 1.35rem 1.5rem; }
+.home-chatbot-launch h2 { margin: 0.2rem 0 0.25rem; color: #f1f4f7; font-size: 1.2rem; font-weight: 750; letter-spacing: -0.02em; }
+.home-chatbot-launch p { margin: 0; color: #aab5c2; font-size: 0.82rem; line-height: 1.6; }
+.home-chatbot-launch-link { display: inline-flex; min-height: 2.8rem; flex: none; align-items: center; justify-content: center; gap: 0.6rem; border: 1px solid #c5050c; border-radius: 999px; background: #c5050c; padding: 0.65rem 1.15rem; color: #fff; font-size: 0.82rem; font-weight: 750; text-decoration: none; transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease; }
+.home-chatbot-launch-link:hover { transform: translateY(-1px); background: #a90008; box-shadow: 0 7px 18px rgba(197, 5, 12, 0.2); }
+.home-chatbot-launch-link:focus-visible { outline: 3px solid #ff9296; outline-offset: 3px; }
+.home-chatbot-launch-link svg { width: 1rem; height: 1rem; }
 @keyframes home-guide-reveal { from { opacity: 0.5; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (max-width: 760px) {
@@ -901,6 +912,7 @@ html.large-text .chat-info-body { font-size: 1rem; }
   .home-video-feature figcaption { flex-direction: column; gap: 0.1rem; }
   .home-lab-heading h2 { white-space: normal; }
   .home-lab-timeline { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.35rem; padding: 0.75rem; }
+  .home-chatbot-launch { align-items: flex-start; flex-direction: column; padding: 1.15rem; }
   .home-lab-timeline::before,
   .home-lab-timeline::after { display: none; }
   .home-lab-step { min-height: 3.6rem; grid-template-columns: 2.5rem minmax(0, 1fr); grid-template-rows: auto; align-items: center; justify-items: start; gap: 0.65rem; border-color: rgba(224, 232, 241, 0.1); border-radius: 0.75rem; padding: 0.4rem; text-align: left; }
@@ -992,17 +1004,23 @@ html.home-light-mode .home-circuit-art circle { fill: #537386; }
 html.home-light-mode .home-heading-row h1,
 html.home-light-mode .home-video-length span,
 html.home-light-mode .home-lab-heading h2,
-html.home-light-mode .home-lab-detail h3 { color: #202a34; }
+html.home-light-mode .home-lab-detail h3,
+html.home-light-mode .home-chatbot-launch h2 { color: #202a34; }
 html.home-light-mode .home-intro-copy,
 html.home-light-mode .home-video-length small,
 html.home-light-mode .home-video-feature figcaption,
 html.home-light-mode .home-lab-note,
-html.home-light-mode .home-lab-detail p { color: #596572; }
+html.home-light-mode .home-lab-detail p,
+html.home-light-mode .home-chatbot-intro,
+html.home-light-mode .home-chatbot-note,
+html.home-light-mode .home-chatbot-launch p { color: #596572; }
 html.home-light-mode .home-video-feature figcaption span:first-child { color: #36424e; }
 html.home-light-mode .home-eyebrow,
 html.home-light-mode .home-section-kicker { color: #a90008; }
 html.home-light-mode .home-video-length { border-color: rgba(197, 5, 12, 0.7); }
 html.home-light-mode .home-lab-interactive { border-color: rgba(30, 43, 56, 0.13); background: linear-gradient(130deg, rgba(255, 255, 255, 0.96), rgba(249, 250, 251, 0.88)); box-shadow: 0 18px 44px rgba(30, 43, 56, 0.07); }
+html.home-light-mode .home-chatbot-note { border-color: rgba(30, 43, 56, 0.12); }
+html.home-light-mode .home-chatbot-launch { border-color: rgba(30, 43, 56, 0.12); background: linear-gradient(115deg, rgba(255, 255, 255, 0.96), rgba(249, 250, 251, 0.9)); }
 html.home-light-mode .home-lab-timeline::before { background: rgba(83, 115, 134, 0.25); }
 html.home-light-mode .home-lab-timeline::after { background: linear-gradient(90deg, #a90008, #d7262d); }
 html.home-light-mode .home-lab-step { color: #34404c; }

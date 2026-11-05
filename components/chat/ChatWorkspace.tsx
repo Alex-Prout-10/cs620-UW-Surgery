@@ -27,6 +27,14 @@ const infoItems: { id: InfoPanel; label: string; icon: string }[] = [
   { id: 'safety', label: 'Safety & privacy', icon: 'shield' },
 ];
 
+const infoEyebrows: Record<InfoPanel, string> = {
+  questions: 'Patient guide',
+  about: 'Chatbot guide',
+  testing: 'Test preparation',
+  resources: 'Patient resources',
+  safety: 'Safety & privacy',
+};
+
 function SmallIcon({ name }: { name: string }) {
   const paths: Record<string, ReactNode> = {
     menu: <><path d="M4 6h16M4 12h16M4 18h16" /></>,
@@ -238,6 +246,7 @@ export default function ChatWorkspace({
   const panelTitle = activePanel
     ? infoItems.find((item) => item.id === activePanel)?.label ?? 'Guide'
     : '';
+  const panelEyebrow = activePanel ? infoEyebrows[activePanel] : 'Guide';
 
   const openPanel = (panel: InfoPanel, trigger: HTMLButtonElement) => {
     panelTriggerRef.current = mobileNavOpen ? menuButtonRef.current : trigger;
@@ -486,7 +495,7 @@ export default function ChatWorkspace({
               tabIndex={-1}
             >
               <div className="chat-info-header">
-                <div><span className="chat-info-eyebrow">Patient information</span><h2 id="chat-info-heading">{panelTitle}</h2></div>
+                <div><span className="chat-info-eyebrow">{panelEyebrow}</span><h2 id="chat-info-heading">{panelTitle}</h2></div>
                 <button ref={closeInfoRef} type="button" className="chat-info-close" aria-label="Close information panel" onClick={closePanel}>
                   <SmallIcon name="close" />
                 </button>

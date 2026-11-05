@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
+import Link from 'next/link';
 
 const labSteps = [
   {
@@ -23,6 +24,29 @@ const labSteps = [
     title: 'After the tests',
     description:
       'A provider will reach out to discuss results. If they are abnormal, they will arrange a visit with a surgeon to discuss treatment. If they are normal, they can discuss what follow-up, if any, is recommended.',
+  },
+];
+
+const chatbotTopics = [
+  {
+    title: 'What it can help with',
+    description:
+      'Get general explanations about adrenal nodules, hormone tests, imaging, follow-up, and treatment discussions. It can also help you prepare questions for an appointment.',
+  },
+  {
+    title: 'How to use it',
+    description:
+      'Ask a question, choose a common question to add it to the composer, and press Send when you are ready. Open Sources under an answer to review its references.',
+  },
+  {
+    title: 'Focused and source-based',
+    description:
+      'This tool is designed for adrenal nodule education and uses a selected health information library rather than searching the open internet.',
+  },
+  {
+    title: 'A guide, not a diagnosis',
+    description:
+      'It cannot see your medical record or decide which tests or treatment are right for you. Your care team can interpret your results in context.',
   },
 ];
 
@@ -55,7 +79,9 @@ export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [labGuideOpen, setLabGuideOpen] = useState(false);
+  const [chatbotGuideOpen, setChatbotGuideOpen] = useState(false);
   const [activeLabStep, setActiveLabStep] = useState(0);
+  const [activeChatbotTopic, setActiveChatbotTopic] = useState(0);
   const mobileSidebarRef = useRef<HTMLElement>(null);
   const mobileSidebarToggleRef = useRef<HTMLButtonElement>(null);
   const mobileSidebarCloseRef = useRef<HTMLButtonElement>(null);
@@ -164,6 +190,7 @@ export default function HomePage() {
             <nav className="home-guide-nav" aria-label="Page sections">
               <a href="#home-title" onClick={closeSidebarOnMobile}><span>01</span><span>Video overview</span></a>
               <a href="#lab-testing-resources" onClick={closeSidebarOnMobile}><span>02</span><span>Hormone testing</span></a>
+              <a href="#chatbot-guide" onClick={closeSidebarOnMobile}><span>03</span><span>Using the chatbot</span></a>
             </nav>
           </div>
 
@@ -227,7 +254,7 @@ export default function HomePage() {
                 </h1>
                 <p className="home-intro-copy">
                   Start with a short overview from the UW Endocrine Surgery team
-                  about what an adrenal nodule is and what may happen next.
+                  about what an adrenal nodule is and the tests and follow-up your care team may discuss.
                 </p>
               </div>
               <div className="home-video-length" aria-label="Video length: 1 minute 58 seconds">
@@ -312,6 +339,79 @@ export default function HomePage() {
                 <p>{labSteps[activeLabStep].description}</p>
               </div>
             </div>
+          </section>
+
+          <section
+            id="chatbot-guide"
+            className="home-lab-section home-chatbot-section"
+            aria-labelledby="chatbot-guide-title"
+          >
+            <div className="home-lab-heading">
+              <span className="home-section-kicker">03 / CHATBOT GUIDE</span>
+              <h2 id="chatbot-guide-title">How the chatbot can help</h2>
+            </div>
+            <p className="home-chatbot-intro">
+              Learn what you can ask, how to get useful answers, and what the chatbot is designed to do.
+            </p>
+
+            <button
+              type="button"
+              className="home-lab-toggle"
+              aria-expanded={chatbotGuideOpen}
+              aria-controls="home-chatbot-instructions"
+              onClick={() => setChatbotGuideOpen((open) => !open)}
+            >
+              <span>{chatbotGuideOpen ? 'Hide chatbot guide' : 'Learn about the chatbot'}</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+
+            <div id="home-chatbot-instructions" className="home-lab-interactive home-chatbot-panel" hidden={!chatbotGuideOpen}>
+              <p className="home-lab-note">Choose a topic to learn more about using the chatbot.</p>
+              <ol
+                className="home-lab-timeline"
+                style={{
+                  '--home-lab-progress': `${12.5 + (activeChatbotTopic / (chatbotTopics.length - 1)) * 75}%`,
+                } as CSSProperties}
+              >
+                {chatbotTopics.map((topic, index) => (
+                  <li key={topic.title}>
+                    <button
+                      type="button"
+                      className="home-lab-step"
+                      aria-pressed={activeChatbotTopic === index}
+                      onClick={() => setActiveChatbotTopic(index)}
+                    >
+                      <span className="home-lab-step-number" aria-hidden="true">0{index + 1}</span>
+                      <span className="home-lab-step-title">{topic.title}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              <div className="home-lab-detail" aria-live="polite">
+                <span className="home-lab-detail-kicker">Topic {activeChatbotTopic + 1} of {chatbotTopics.length}</span>
+                <h3>{chatbotTopics[activeChatbotTopic].title}</h3>
+                <p>{chatbotTopics[activeChatbotTopic].description}</p>
+              </div>
+              <p className="home-chatbot-note">
+                It cannot diagnose you, make treatment decisions, or recommend medication changes. Follow your own care team’s instructions. For severe or sudden symptoms, seek urgent medical care.
+              </p>
+            </div>
+          </section>
+
+          <section className="home-chatbot-launch" aria-labelledby="home-chatbot-launch-title">
+            <div>
+              <span className="home-section-kicker">READY WHEN YOU ARE</span>
+              <h2 id="home-chatbot-launch-title">Have a question?</h2>
+              <p>Open the chatbot to explore general questions about adrenal nodule care.</p>
+            </div>
+            <Link href="/chat" className="home-chatbot-launch-link">
+              Open the chatbot
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </Link>
           </section>
         </div>
       </div>
